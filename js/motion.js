@@ -129,6 +129,10 @@
     if (!('IntersectionObserver' in window)) { settleAt(n - 1); future.style.strokeDashoffset = '0'; future.style.opacity = '0.35'; return; }
     flight.classList.add('armed');
     settleAt(0);
+    // text first: the route is laid over the milestones as they actually wrap — again once fonts load and whenever the strip resizes
+    var relayout = function () { geometry(); if (!st.busy) settleAt(st.active); };
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
+    if ('ResizeObserver' in window) new ResizeObserver(relayout).observe(tl);
 
     // jumps resolve to the finished state that belongs there
     function resolve() {
@@ -217,6 +221,9 @@
   (function () {
     var cue = document.querySelector('.scroll-cue');
     if (!cue || window.scrollY > 40) return;
+    // on narrow screens a fixed cue would sit on the words beneath the photograph: it rests under the photo instead
+    var photo = document.querySelector('.me-photo');
+    if (photo && window.matchMedia('(max-width: 820px)').matches) { photo.appendChild(cue); cue.classList.add('inline'); }
     var t0 = performance.now();
     (function f(now) { if (now - t0 < 1100) { requestAnimationFrame(f); return; } if (window.scrollY <= 40) cue.classList.add('on'); })(t0);
     function off() { if (window.scrollY > 40) { cue.classList.remove('on'); cue.classList.add('gone'); window.removeEventListener('scroll', off); } }
@@ -560,10 +567,11 @@
 
     if (drawClose) {
       drawClose(0);
+      close.style.setProperty('--k', '0');   // its names wait until the parts have separated, so they never sit on each other
       var seen = new IntersectionObserver(function (rows) {
         if (!rows[0].isIntersecting) return;
         seen.disconnect();
-        tween(2400, drawClose, function () { close.classList.add('quiet'); });
+        tween(2400, function (k) { drawClose(k); close.style.setProperty('--k', sm(0.6, 1, k).toFixed(3)); }, function () { close.classList.add('quiet'); });
       }, { threshold: 0.45 });
       seen.observe(close);
     }
@@ -622,6 +630,55 @@
     });
   }
   practice();
+
+  /* ================= DRAWING LABELS ON NARROW SCREENS =================
+     Her typography rule: text is never shrunk to fit a drawing. A line drawing scales with its column, so on a
+     phone its labels can fall under 12px or run into each other. When that would happen the drawing keeps its
+     lines and its labels move into a key beneath it — in the drawing's own order, arriving with the stage they
+     belong to. Measured, never guessed: re-checked whenever a drawing's width changes and once fonts load. */
+  function figureKeys() {
+    var svgs = [].slice.call(document.querySelectorAll('svg.mfig-svg, svg.msys, figure.sfig svg'));
+    if (!svgs.length) return;
+    var LABEL = 'text.gl, text.pn, text.pv';
+    var items = svgs.map(function (svg) {
+      var labels = [].slice.call(svg.querySelectorAll(LABEL));
+      if (!labels.length || !svg.viewBox || !svg.viewBox.baseVal || !svg.viewBox.baseVal.width) return null;
+      var key = document.createElement('ol'), seen = {};
+      key.className = 'figkey'; key.hidden = true; key.setAttribute('aria-hidden', 'true');
+      labels.forEach(function (t) {
+        var words = (t.textContent || '').trim();
+        if (words.length < 3 || seen[words]) return;
+        seen[words] = 1;
+        var li = document.createElement('li'), g = t.closest('g[class]'), m = null;
+        for (var e = t.parentNode; e && e !== svg && !m; e = e.parentNode) m = (e.getAttribute && (e.getAttribute('class') || '').match(/(?:^|\s)st(\d)(?:\s|$)/));
+        if (m) li.setAttribute('data-st', m[1]);
+        li.textContent = words;
+        ['es', 'esHtml'].forEach(function (k) { if (t.dataset[k]) li.dataset[k] = t.dataset[k]; });
+        key.appendChild(li);
+      });
+      // the key reads in the drawing's own order: its stages first, then anything unstaged, as drawn
+      [].slice.call(key.children).map(function (li, i) { return { li: li, st: +(li.getAttribute('data-st') || 99), i: i }; })
+        .sort(function (x, y) { return x.st - y.st || x.i - y.i; }).forEach(function (o) { key.appendChild(o.li); });
+      svg.parentNode.insertBefore(key, svg.nextSibling);
+      return { svg: svg, key: key, labels: labels };
+    }).filter(Boolean);
+    function measure() {
+      items.forEach(function (it) {
+        var w = it.svg.getBoundingClientRect().width, vb = it.svg.viewBox.baseVal.width;
+        var fs = Math.min.apply(null, it.labels.map(function (t) { return parseFloat(getComputedStyle(t).fontSize) || 99; }));   // the smallest label decides
+        var px = fs * (w / vb);
+        // phones and tablets: never under 12px. Wider screens keep the drawings as designed unless a label would fall under 9px
+        var keyed = w > 0 && px < (window.innerWidth < 1024 ? 12 : 10);   // tablets in portrait count as small screens
+        it.svg.classList.toggle('keyed', keyed);
+        it.key.hidden = !keyed;
+      });
+    }
+    measure();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+    if ('ResizeObserver' in window) { var ro = new ResizeObserver(measure); items.forEach(function (it) { ro.observe(it.svg); }); }
+    else window.addEventListener('resize', measure);
+  }
+  figureKeys();
 
   applyLang(new URL(location.href).searchParams.get('lang') === 'es' ? 'es' : 'en');
 

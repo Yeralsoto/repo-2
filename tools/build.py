@@ -180,6 +180,17 @@ def detail(lines, media, lab_facts, lab_name, wide=False, cls=""):
             f'<figure class="d-media" data-reveal data-late>{media}{label(lab_facts, lab_name, reveal=False)}</figure>'
             f'</div></div></section>')
 
+# her ask (2026-09-14): a quiet ownership note and an invitation, in the footer only — never on the narrative
+# pages. It claims only her original material ("unless otherwise credited": the thesis co-authors, proverbs and
+# quotations, fonts, libraries). The address is the site's one EMAIL.
+def owner_note():
+    return (f'<div class="owner">'
+            f'{tx("p", "© 2026 Yeraldin Soto", "© 2026 Yeraldin Soto", cls="owner-c")}'
+            f'{tx("p", "Original copy, photography, illustrations, concepts and custom site content belong to Yeraldin Soto unless otherwise credited. Please do not reuse them without permission.", "Los textos, fotografías, ilustraciones, conceptos y el contenido propio del sitio pertenecen a Yeraldin Soto, salvo que se indique otro crédito. Por favor, no los reutilices sin permiso.", cls="owner-t")}'
+            f'<p class="owner-ask">{tx("span", "Interested in creating a digital experience with this level of storytelling and interaction?", "¿Te interesa crear una experiencia digital con este nivel de narrativa e interacción?")} '
+            f'<a href="mailto:{EMAIL}">{tx("span", "Email me for further inquiries.", "Escríbeme para más información.")}</a></p>'
+            f'</div>')
+
 def page(slug, title, desc, body, jsonld=""):
     depth = slug.count("/") + 1 if slug else 0   # journal entries live one level deeper: journal/<entry>/
     R = "../" * depth
@@ -195,7 +206,7 @@ def page(slug, title, desc, body, jsonld=""):
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 {tx("title", *title)}
 <meta name="description" content="{A(desc[0])}" data-es-content="{A(desc[1])}">
 <meta name="author" content="Yeraldin Soto">
@@ -274,7 +285,7 @@ def page(slug, title, desc, body, jsonld=""):
       <a class="li" href="{LINKEDIN}" rel="me noopener" target="_blank">LinkedIn</a>
       <a class="mail" href="mailto:{EMAIL}">{EMAIL}</a>
     </div>
-    {tx("div", "By Yeraldin Soto · © 2026", "Por Yeraldin Soto · © 2026", cls="caps fine")}
+    {owner_note()}
   </div>
 </footer>
 

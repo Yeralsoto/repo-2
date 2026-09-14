@@ -248,6 +248,25 @@ The Days = memory only · The Aerodrome owns the thesis experience. Recurring mo
   list. New concept entries (subdivision, JV, novation) are dated "Notes · 2026", never invented dates; legal topics
   carry a "not legal advice" margin. `practice()` in motion.js now plays any number of stages.
 
+## Responsive typography (her audit, 2026-09-14)
+
+Text is not a fixed graphic: it wraps, grows, loads late and responds to accessibility settings. Layouts and
+animations adapt to it, never the reverse. Zero accidental text overlap is the rule; never hide one with overflow.
+
+- **Audit tool:** `tools/audit.js` (review only, never loaded by the site). In the preview, inject it and run
+  `__audit()`: it measures every visible line of text and reports overlaps, text leaving the viewport, text
+  under 12px (SVG labels at their on-screen size) and page-level horizontal scroll. Run it at 320, 375, 768 and
+  1280 after any layout or copy change; force stages on for drawings (`armed s1…s8`) and open the Mind drawers.
+- **Drawing labels:** `figureKeys()` in motion.js. When a drawing's labels would render under 12px below 1024px wide
+  (under 10px wider; the smallest label decides), the drawing keeps its lines and its labels move into a numbered key beneath it
+  (`.figkey`), in stage order, arriving with their stage, with their Spanish. Re-measured on resize and after
+  `document.fonts.ready`. Applies to `svg.mfig-svg`, `svg.msys` and the technical-sheet figures.
+- **Text-dependent geometry:** the About timeline route is re-laid after fonts load and whenever the strip resizes
+  (ResizeObserver). The About scroll cue rests under the photo on narrow screens instead of floating over words.
+- **Safe areas:** `viewport-fit=cover`; `.wrap` and the bar pad with `max(20/30px, env(safe-area-inset-*))`.
+- **Narrow bars:** below 380px the wordmark, language switch and index button tighten their tracking to keep one
+  line; tracked capitals loosen less below 420px. Code blocks stay 13px and wrap inside their own box.
+
 ## The Days — prints
 
 **Her master brief (2026-09) replaced the rolling film strip.** A physical print arrives, develops,

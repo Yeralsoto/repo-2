@@ -1170,3 +1170,57 @@
     .aero.live .aero-more{top:64px;bottom:auto;right:var(--s-16);}
     .aero.live .aero-flight{top:150px;}
   }
+
+  /* ---------- FOOTER — ownership and an invitation (her ask, 2026-09-14) ----------
+     Quiet and legible, in the footer's own system: a hairline, the © line in tracked caps, one sentence in
+     Tinta Suave, the invitation with its link on a Latón rule. No box, no fine print below 14px. */
+  .owner{margin-top:var(--s-32);padding-top:var(--s-24);border-top:1px solid var(--rule);max-width:62ch;display:flex;flex-direction:column;gap:var(--s-8);}
+  .owner p{margin:0;}
+  .owner-c{font-family:"Jost",sans-serif;font-size:var(--t-12);letter-spacing:.24em;text-transform:uppercase;color:var(--tinta);}
+  .owner-t,.owner-ask{font-family:"Jost",sans-serif;font-weight:300;font-size:var(--t-14);line-height:1.6;color:var(--tinta-soft);}
+  .owner-ask{margin-top:var(--s-8)!important;}
+  .owner-ask a{color:var(--tinta);text-decoration:none;border-bottom:1px solid var(--laton);padding-bottom:1px;}
+  .owner-ask a:hover{border-bottom-color:var(--tinta);}
+
+  /* ---------- RESPONSIVE TYPOGRAPHY (her audit, 2026-09-14) ----------
+     Text is not a fixed graphic: it wraps, grows and loads late. Drawings give way to it (figureKeys in motion.js),
+     screens with notches keep their safe area, tracked capitals loosen less on phones, code stays readable. */
+  .figkey{list-style:none;margin:var(--s-16) 0 0;padding:0;counter-reset:fk;}
+  .figkey[hidden]{display:none;}
+  .figkey li{counter-increment:fk;display:grid;grid-template-columns:2.2em 1fr;gap:var(--s-8);align-items:baseline;padding:var(--s-8) 0;border-bottom:1px solid var(--rule);
+    font-family:"Jost",sans-serif;font-weight:400;font-size:var(--t-14);line-height:1.45;letter-spacing:.08em;text-transform:uppercase;color:var(--tinta);
+    transition:opacity 500ms var(--ease-out);}
+  .figkey li::before{content:counter(fk, decimal-leading-zero);color:var(--tinta-mute);letter-spacing:.04em;}
+  svg.keyed text.gl,svg.keyed text.pn,svg.keyed text.pv{display:none;}
+  .armed .figkey li{opacity:0;}
+  .armed.s1 .figkey li:not([data-st]){opacity:1;}
+  .armed.s1 .figkey li[data-st="1"]{opacity:1;}
+  .armed.s2 .figkey li[data-st="2"]{opacity:1;}
+  .armed.s3 .figkey li[data-st="3"]{opacity:1;}
+  .armed.s4 .figkey li[data-st="4"]{opacity:1;}
+  .armed.s5 .figkey li[data-st="5"]{opacity:1;}
+  .armed.s6 .figkey li[data-st="6"]{opacity:1;}
+  .armed.s7 .figkey li[data-st="7"]{opacity:1;}
+  .armed.s8 .figkey li[data-st="8"]{opacity:1;}
+
+  .wrap{padding-left:max(30px, env(safe-area-inset-left));padding-right:max(30px, env(safe-area-inset-right));}
+  nav.topbar .bar{padding-left:max(30px, env(safe-area-inset-left));padding-right:max(30px, env(safe-area-inset-right));}
+  @media (max-width:640px){
+    .wrap{padding-left:max(20px, env(safe-area-inset-left));padding-right:max(20px, env(safe-area-inset-right));}
+    nav.topbar .bar{padding-left:max(20px, env(safe-area-inset-left));padding-right:max(20px, env(safe-area-inset-right));}
+  }
+  @media (max-width:420px){ .caps{letter-spacing:.18em;} }
+  .code{font-size:13px;max-width:100%;}
+
+  .js .scroll-cue.inline{position:static;transform:none;margin:var(--s-16) auto 0;width:max-content;}
+  /* the bar on the narrowest phones (320–380px): the wordmark, the language switch and the index keep one line */
+  @media (max-width:380px){
+    nav.topbar .bar{gap:var(--s-12);}
+    nav.topbar .brand{letter-spacing:.2em;gap:8px;}
+    nav.topbar .tools{gap:var(--s-12);}
+    .lang-b,.menub{letter-spacing:.14em;}
+    .menub{gap:8px;}
+  }
+  /* a print's name and its facts never touch: the latitude's prime (′) sits taller than the capitals around it */
+  .print figcaption{gap:var(--s-8);}
+  .print figcaption .facts{line-height:1.6;}
