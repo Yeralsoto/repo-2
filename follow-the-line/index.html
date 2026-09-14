@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Follow the Line — Yeraldin Soto</title>
+<meta name="description" content="The same piece of land, from raw ground to a drawn line to a place people call home.">
+<meta name="author" content="Yeraldin Soto">
+<meta name="theme-color" content="#1E4638">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<script>document.documentElement.classList.add('js');if(/[?&]embed\b/.test(location.search))document.documentElement.classList.add('ftl-embed')</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Jost:wght@300;400;500&display=swap">
+<link rel="stylesheet" href="../css/tokens.css?v=0a2715e7c5">
+<link rel="stylesheet" href="line.css?v=857aaa0bed">
+<!-- The ./js/ entries and every ?v= here are stamped by tools/build.py so the modules update together. -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+    "./js/build.js": "./js/build.js?v=857aaa0bed",
+    "./js/camera.js": "./js/camera.js?v=857aaa0bed",
+    "./js/config.js": "./js/config.js?v=857aaa0bed",
+    "./js/growth.js": "./js/growth.js?v=857aaa0bed",
+    "./js/houses.js": "./js/houses.js?v=857aaa0bed",
+    "./js/kit.js": "./js/kit.js?v=857aaa0bed",
+    "./js/layout.js": "./js/layout.js?v=857aaa0bed",
+    "./js/life.js": "./js/life.js?v=857aaa0bed",
+    "./js/main.js": "./js/main.js?v=857aaa0bed",
+    "./js/network.js": "./js/network.js?v=857aaa0bed",
+    "./js/overlay.js": "./js/overlay.js?v=857aaa0bed",
+    "./js/shaders.js": "./js/shaders.js?v=857aaa0bed",
+    "./js/story.js": "./js/story.js?v=857aaa0bed",
+    "./js/validate.js": "./js/validate.js?v=857aaa0bed",
+    "./js/world.js": "./js/world.js?v=857aaa0bed"
+  }
+}
+</script>
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" crossorigin>
+<script type="module" src="js/main.js?v=857aaa0bed"></script>
+</head>
+<body class="ftl-page">
+<a class="skip" href="#after">Skip to the end</a>
+<main>
+  <section id="ftl" class="ftl" aria-labelledby="ftl-title">
+    <div class="ftl-stage" tabindex="-1">
+      <header class="ftl-bar">
+        <a class="ftl-wordmark" href="../" data-page="home">
+          <svg class="ftl-mark-small" viewBox="0 0 120 200" aria-hidden="true" focusable="false">
+            <path d="M60 90 C40 76 26 52 26 22 C45 35 58 62 60 90 Z"/>
+            <path d="M60 90 C80 76 94 52 94 22 C75 35 62 62 60 90 Z"/>
+            <path d="M42 46 L60 86"/>
+            <path d="M78 46 L60 86"/>
+            <path d="M60 86 L60 190"/>
+          </svg>
+          <span>Yeraldin Soto</span>
+        </a>
+      </header>
+      <h1 id="ftl-title" class="sr-only">Follow the Line</h1>
+      <div class="ftl-canvas" aria-hidden="true"></div>
+      <div class="ftl-scrim" aria-hidden="true"></div>
+      <div class="ftl-veil" aria-hidden="true"></div>
+      <svg class="ftl-draw" aria-hidden="true" focusable="false"><path d=""></path></svg>
+      <div class="ftl-loader" aria-hidden="true">
+        <svg viewBox="0 0 200 200" focusable="false">
+          <circle cx="100" cy="100" r="90" pathLength="1" class="ring"/>
+          <g transform="translate(100 104) scale(0.62) translate(-60 -104)">
+            <path pathLength="1" d="M60 90 C40 76 26 52 26 22 C45 35 58 62 60 90 Z"/>
+            <path pathLength="1" d="M60 90 C80 76 94 52 94 22 C75 35 62 62 60 90 Z"/>
+            <path pathLength="1" d="M36 40 C40 66 50 84 60 90"/>
+            <path pathLength="1" d="M84 40 C80 66 70 84 60 90"/>
+            <path pathLength="1" d="M60 90 C61 124 59 158 60 192"/>
+            <path pathLength="1" d="M60 124 C74 114 88 112 97 104 C90 122 75 131 60 124 Z"/>
+            <path pathLength="1" d="M60 150 C46 140 32 138 23 130 C30 148 45 157 60 150 Z"/>
+          </g>
+        </svg>
+      </div>
+      <ol class="ftl-copy">
+        <li><p>What can this land become?</p></li>
+        <li><p>Before the road, there is only possibility.</p></li>
+        <li><p>Then someone draws a line.</p></li>
+        <li><p>Every line changes the answer.</p></li>
+        <li><p>An idea becomes a sequence.</p></li>
+        <li><p>A place is more than its parcels.</p></li>
+        <li><p>Eventually, the drawing disappears.</p></li>
+        <li><p>People simply call it home.</p></li>
+        <li class="ftl-last">
+          <svg class="ftl-sign-mark" viewBox="0 0 120 200" aria-hidden="true" focusable="false">
+            <path pathLength="1" d="M60 90 C61 124 59 158 60 192"/>
+            <path pathLength="1" d="M60 90 C40 76 26 52 26 22 C45 35 58 62 60 90 Z"/>
+            <path pathLength="1" d="M60 90 C80 76 94 52 94 22 C75 35 62 62 60 90 Z"/>
+            <path pathLength="1" d="M36 40 C40 66 50 84 60 90"/>
+            <path pathLength="1" d="M84 40 C80 66 70 84 60 90"/>
+            <path pathLength="1" d="M60 124 C74 114 88 112 97 104 C90 122 75 131 60 124 Z"/>
+            <path pathLength="1" d="M60 150 C46 140 32 138 23 130 C30 148 45 157 60 150 Z"/>
+          </svg>
+          <p>I tend to follow the line<span class="stop">.</span></p>
+        </li>
+      </ol>
+      <div class="ftl-progress" aria-hidden="true"><span></span></div>
+      <nav class="ftl-steps" aria-label="Stages" hidden>
+        <button type="button" data-step="prev">Previous</button>
+        <span class="ftl-count" aria-live="polite">1 / 9</span>
+        <button type="button" data-step="next">Next</button>
+      </nav>
+    </div>
+  </section>
+  <footer id="after" class="ftl-after">
+    <p class="ftl-sign">
+      <svg class="ftl-seal" viewBox="0 0 200 200" aria-hidden="true" focusable="false">
+        <circle cx="100" cy="100" r="90" stroke-width="1.6" opacity="0.45"/>
+        <g transform="translate(100 104) scale(0.62) translate(-60 -104)" stroke-width="3">
+          <path d="M60 90 C40 76 26 52 26 22 C45 35 58 62 60 90 Z"/>
+          <path d="M60 90 C80 76 94 52 94 22 C75 35 62 62 60 90 Z"/>
+          <path d="M36 40 C40 66 50 84 60 90"/>
+          <path d="M84 40 C80 66 70 84 60 90"/>
+          <path d="M60 90 C61 124 59 158 60 192"/>
+          <path d="M60 124 C74 114 88 112 97 104 C90 122 75 131 60 124 Z"/>
+          <path d="M60 150 C46 140 32 138 23 130 C30 148 45 157 60 150 Z"/>
+        </g>
+      </svg>
+      <span>by Yeraldin Soto</span>
+    </p>
+    <a href="../" data-page="home">Home</a>
+  </footer>
+</main>
+</body>
+</html>

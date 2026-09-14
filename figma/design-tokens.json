@@ -1,0 +1,35 @@
+{
+  "$description": "Yeraldin — audited design tokens. Ratios measured with the WCAG relative-luminance formula against the painted pixel, in both themes.",
+  "color": {
+    "papel":        { "value": "#F5EFE4", "use": "ground (light), and all text on Verde" },
+    "papel-2":      { "value": "#EDE5D7", "use": "secondary ground" },
+    "tinta":        { "value": "#211C17", "use": "all text and lines on Papel" },
+    "tinta-soft":   { "value": "#5A5148", "use": "body copy" },
+    "tinta-mute":   { "value": "#6E6458", "use": "labels, tracked caps" },
+    "verde":        { "value": "#1E4638", "use": "SURFACE ONLY — never sets type" },
+    "verde-deep":   { "value": "#16352A", "use": "alternate surface, footer, index" },
+    "on-verde":     { "value": "#F5EFE4", "use": "every piece of text on Verde, both themes" },
+    "arcilla":      { "value": "#AF5F3E", "use": "display 25px+ and non-text. NEVER on Verde" },
+    "arcilla-text": { "value": "#9E5031", "use": "accent text under 25px. NEVER on Verde" },
+    "laton":        { "value": "#8F7546", "use": "hairlines on Papel" },
+    "laton-on-verde": { "value": "#C9AC78", "use": "hairlines on Verde, display 25px+" },
+    "rule":         { "value": "#D7CDBB", "use": "hairline" },
+    "rule-strong":  { "value": "#8E8270", "use": "stronger hairline" }
+  },
+  "type": {
+    "display": { "family": "Cormorant Garamond", "weight": 300, "use": "display, wordmark, specimen names" },
+    "voice":   { "family": "Cormorant Garamond", "weight": 300, "style": "italic" },
+    "body":    { "family": "Jost", "weight": 300 },
+    "label":   { "family": "Jost", "weight": 400, "letterSpacing": "0.26em", "case": "uppercase" },
+    "wordmark":{ "family": "Cormorant Garamond", "weight": 300, "letterSpacing": "0.30em", "case": "uppercase" },
+    "scale":   { "ratio": 1.25, "steps": [12, 14, 16, 20, 25, 31, 39, 49, 61] }
+  },
+  "space": { "steps": [4, 8, 12, 16, 24, 32, 48, 64, 96], "sectionPaddingDesktop": 96 },
+  "layout": { "maxWidth": 1060, "plateAspect": "4:5" },
+  "motion": {
+    "ease":     "cubic-bezier(.22,.61,.36,1)",
+    "easeOut":  "cubic-bezier(.16,1,.3,1)",
+    "durations": { "fast": 150, "base": 220, "slow": 420, "draw": 1700 }
+  },
+  "proportion": { "verde": "~70%", "papel": "~20%", "tinta": "~7%", "arcilla": "~2%", "laton": "~1%" }
+}

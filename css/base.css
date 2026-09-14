@@ -1,0 +1,19 @@
+/* BASE — reset, document, shared utilities.
+   Yeraldin — see CLAUDE.md before editing. */
+
+*{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto;} *{animation:none!important;transition:none!important;}}
+  body{
+    margin:0;background:var(--papel);color:var(--tinta);
+    font-family:"Jost",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-size:var(--t-16);font-weight:300;line-height:1.65;-webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+  img{max-width:100%;display:block;}
+  ::selection{background:var(--arcilla);color:var(--papel);}
+  :focus-visible{outline:2px solid var(--arcilla);outline-offset:3px;border-radius:2px;}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 30px;}
+  .caps{font-family:"Jost",sans-serif;font-weight:400;font-size:var(--t-12);letter-spacing:.26em;text-transform:uppercase;}
+  .serif{font-family:"Cormorant Garamond",Georgia,serif;font-weight:300;}
