@@ -263,6 +263,14 @@ animations adapt to it, never the reverse. Zero accidental text overlap is the r
   `document.fonts.ready`. Applies to `svg.mfig-svg`, `svg.msys` and the technical-sheet figures.
 - **Text-dependent geometry:** the About timeline route is re-laid after fonts load and whenever the strip resizes
   (ResizeObserver). The About scroll cue rests under the photo on narrow screens instead of floating over words.
+- **A photograph never covers words (her rule, 2026-09-14):** prints on The Days may overlap each other, never a
+  caption. `clearWords()` in motion.js `prints()` measures the real layout and moves a caption clear of any other
+  print (or moves that print down), on load, resize, fonts ready, language change and when a set finishes. Only a
+  print's paper and caption take the pointer, so an empty print box never sits over another caption.
+  `await __occlusion()` in tools/audit.js scrolls the page and reports any text with something painted on top of
+  it — run it with the audit. Transitions are frozen and scrolling jumps while it measures.
+- **Drawing labels never crowd:** the audit's `crowded` list flags two labels in one drawing with under 6px between
+  them (e.g. the six conditions in Protect the decision now alternate above and below the line).
 - **Safe areas:** `viewport-fit=cover`; `.wrap` and the bar pad with `max(20/30px, env(safe-area-inset-*))`.
 - **Narrow bars:** below 380px the wordmark, language switch and index button tighten their tracking to keep one
   line; tracked capitals loosen less below 420px. Code blocks stay 13px and wrap inside their own box.

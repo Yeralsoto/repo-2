@@ -350,6 +350,40 @@
     var playing = null;
 
     function state(p, s) { p.dataset.state = s; }
+    // her rule: a photograph never covers words. Prints may overlap each other; a caption that would sit under another
+    // print is moved clear of it — or, when that print comes after it, the print moves down. Measured from the real
+    // layout, at rest, and again on resize, after fonts load, when a language changes and when a set has finished.
+    function clearWords(box) {
+      var ps = [].slice.call(box.querySelectorAll('.print'));
+      var moving = ps.some(function (p) { return /^(entering|blank|developing)$/.test(p.dataset.state || ''); });
+      if (moving) return;
+      ps.forEach(function (p) { p.style.marginTop = ''; p.querySelector('figcaption').style.marginTop = ''; });
+      var rel = function (el) {
+        var b = box.getBoundingClientRect(), r = el.getBoundingClientRect();
+        return { x0: r.left - b.left, x1: r.right - b.left, y0: r.top - b.top, y1: r.bottom - b.top };
+      };
+      for (var pass = 0; pass < 6; pass++) {
+        var moved = false;
+        ps.forEach(function (p) {
+          var cap = p.querySelector('figcaption');
+          ps.forEach(function (q) {
+            if (q === p) return;
+            var c = rel(cap), r = rel(q.querySelector('.paper')), pad = 16;
+            if (r.x0 < c.x1 + pad && r.x1 > c.x0 - pad && r.y0 < c.y1 + pad && r.y1 > c.y0 - pad) {
+              if (r.y0 > c.y0) q.style.marginTop = (parseFloat(getComputedStyle(q).marginTop) + (c.y1 + pad - r.y0)).toFixed(1) + 'px';
+              else cap.style.marginTop = (parseFloat(getComputedStyle(cap).marginTop) + (r.y1 + pad - c.y0)).toFixed(1) + 'px';
+              moved = true;
+            }
+          });
+        });
+        if (!moved) break;
+      }
+    }
+    function clearAll() { [].forEach.call(room.querySelectorAll('.dprints'), clearWords); }
+    clearAll();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(clearAll);
+    window.addEventListener('resize', clearAll);
+    onLang.push(clearAll);
     // where this print rests, and where it leaves the camera — both in the set's own coordinates
     function geo(p) {
       var paper = p.querySelector('.paper'), box = p.parentNode, cam = box.querySelector('.cam');
@@ -441,7 +475,7 @@
       el.classList.add('live');
       (function next() {
         if (i < list.length) run(list[i++], i === 1 ? T.lead : 160, next);
-        else el.classList.add('shot');   // the last print is out: the camera leaves
+        else { el.classList.add('shot'); clearWords(el.querySelector('.dprints')); }   // the last print is out: the camera leaves
       })();
     }
 

@@ -1224,3 +1224,6 @@
   /* a print's name and its facts never touch: the latitude's prime (′) sits taller than the capitals around it */
   .print figcaption{gap:var(--s-8);}
   .print figcaption .facts{line-height:1.6;}
+  /* a print's empty box never sits over another print's words: only the paper and its caption take the pointer */
+  .print{pointer-events:none;}
+  .print .paper,.print figcaption{pointer-events:auto;}

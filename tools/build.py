@@ -1572,7 +1572,9 @@ def fig_orbit():
 
 def fig_hold():
     conds = [("timing", "momento"), ("energy", "energía"), ("emotion", "emoción"), ("information", "información"), ("reversibility", "reversibilidad"), ("urgency", "urgencia")]
-    ticks = "".join(f'<g class="cond" style="--i:{k}"><path d="M{150 + k * 76} 150V166"/>{svg_label(en, es, 150 + k * 76, 136, "middle", "gl small")}</g>'
+    # the six conditions alternate above and below the line, so no name runs into its neighbour (her typography audit)
+    ticks = "".join(f'<g class="cond" style="--i:{k}"><path d="M{150 + k * 76} {150 if k % 2 == 0 else 186}V{166 if k % 2 == 0 else 202}"/>'
+                    f'{svg_label(en, es, 150 + k * 76, 136 if k % 2 == 0 else 224, "middle", "gl small")}</g>'
                     for k, (en, es) in enumerate(conds))
     return ('<svg class="mfig-svg" viewBox="0 0 640 320" role="img" aria-label="A decision waits on a line until timing, energy, emotion, information, reversibility and urgency are clear; urgent and uncomfortable separate." '
             'data-es-aria="Una decisión espera sobre una línea hasta que el momento, la energía, la emoción, la información, la reversibilidad y la urgencia están claros; urgente e incómodo se separan.">'
