@@ -620,8 +620,11 @@ export function createStory(stage, L) {
       if (NARROW) {
         // narrow: the table is a horizontal line; the details collapse into five lines above it and the five
         // are carried down across it, with the stages beneath — all inside the band
-        const bx = 20, bw = W - 40, top = 92, gap = 28;
-        const yA = (i) => top + 14 + i * gap, yT = yA(4) + 20, yB = (i) => yT + 30 + i * gap, yS = (i) => yB(4) + 34 + i * 26;
+        // (her note, 2026-09-15: stage 1, 2, 3 in order — the whole stack is sized to the band, so settle() never
+        // has to push the stages together and hide one)
+        const bx = 20, bw = W - 40, top = 92, sGap = 34, B = bandBox();
+        const gap = Math.max(18, Math.min(28, (B.b - 16 - top - 14 - 20 - 30 - 34 - 2 * sGap) / 8));
+        const yA = (i) => top + 14 + i * gap, yT = yA(4) + 20, yB = (i) => yT + 30 + i * gap, yS = (i) => yB(4) + 34 + i * sGap;
         table.setAttribute('d', seg([bx, yT], [bx + bw, yT])); draw(table, kIn); opa(table, out * 0.8);
         DET.forEach((d, i) => {
           const x = bx + d[0] * bw * 0.7, y = top + d[1] * (yT - top - 16), l = d[2] * bw * 0.16;
@@ -635,8 +638,8 @@ export function createStory(stage, L) {
           opa(f.line, kC * out); opa(f.t, kC * out);
         });
         stages.forEach((s, i) => {
-          const k = smooth(S.closerAcross[0] + i * 0.002, S.closerAcross[1] + i * 0.002, p);
-          const y = yS(i), xa = bx + bw * 0.04 + i * bw * 0.08;
+          const k = smooth(S.closerAcross[0] + i * 0.003, S.closerAcross[1] + i * 0.003, p);
+          const y = yS(i), xa = bx + bw * 0.04;
           s.line.setAttribute('d', `M${f1(xa)} ${f1(y)}h${f1(bw * 0.3 * k)}`);
           put(s.t, xa, y - 8); opa(s.line, out); opa(s.t, k * out);
         });
