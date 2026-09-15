@@ -38,7 +38,8 @@ there are no model files to download: about 170 KB of three.js plus about 120 KB
     js/world.js     voxel terrain with earthwork, pines, public road, farms, sky, sun
     js/build.js     survey, underwriting sheets, the road layer by layer, drainage,
                     utilities, lot lines, frontage, driveways, the real road
-    js/houses.js    3 footprints × roof types × 2 facade families; the hero home in layers
+    js/houses.js    3 footprints × roof types × 2 facade families; the hero home in layers (standalone
+                    film only — on The Work homes arrive after their lots sell, the buyers' builders' work)
     js/life.js      planting, mailboxes, porch lights, parked cars, and the network in use
     js/growth.js    crossroad, rural homes, school, rec field, shop, second neighbourhood,
                     the next site's lines and first road tiles, public-road traffic

@@ -1167,8 +1167,8 @@
   .ws-more-next span.on{opacity:1;transform:none;}
   @media (max-width:720px){
     .ws-more-next span{font-size:var(--t-16);}
-    .aero.live .aero-more{top:64px;bottom:auto;right:var(--s-16);}
-    .aero.live .aero-flight{top:150px;}
+    /* her ask: the tab stays bottom right, as on The Work; the notes sit above it, the flight note at the top */
+    .aero.live .aero-item:not(.aero-flight):not(.aero-last){bottom:calc(3svh + var(--more-h,112px));}
   }
 
   /* ---------- FOOTER — ownership and an invitation (her ask, 2026-09-14) ----------
@@ -1258,3 +1258,26 @@
   .sketch-svg .shade{stroke-width:.9;opacity:.7;}
   .js .mfig.sketch.armed .sketch-svg path{stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1100ms var(--ease-out);}
   .js .mfig.sketch.armed.s1 .st1 path,.js .mfig.sketch.armed.s2 .st2 path,.js .mfig.sketch.armed.s3 .st3 path{stroke-dashoffset:0;}
+
+  /* ---------- her notes (2026-09-14, second round) ---------- */
+  /* Multifamily: no words on the building — the four readings arrive beside it as text that reflows */
+  .pfig .bsvg{display:block;width:100%;max-width:340px;height:auto;margin:0 auto;}
+  .pfig .blenses{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-24) var(--s-32);margin:var(--s-32) 0 0;}
+  .pfig .blenses div{border-top:1px solid color-mix(in srgb,var(--laton-on-verde) 45%,transparent);padding-top:var(--s-12);}
+  .pfig .blenses dt{color:var(--laton-on-verde);margin:0 0 var(--s-8);}
+  .pfig .blenses dd{margin:0;font-size:var(--t-16);line-height:1.45;color:var(--on-verde);}
+  @media (max-width:360px){ .pfig .blenses{grid-template-columns:1fr;} }
+  /* the Journal's stage captions: all of them without motion, one at a time as a drawing builds */
+  .jcaps{list-style:none;margin:var(--s-24) 0 0;padding:0;display:grid;gap:var(--s-8);}
+  .jcaps li{font-size:var(--t-16);line-height:1.45;color:var(--on-verde);max-width:52ch;}
+  .jfig.armed .jcaps li{grid-area:1/1;opacity:0;transition:opacity 160ms linear;}
+  .jfig.armed.s1 .jcaps .c1{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}.jfig.armed.s2 .jcaps .c2{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}.jfig.armed.s3 .jcaps .c3{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}.jfig.armed.s4 .jcaps .c4{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}.jfig.armed.s5 .jcaps .c5{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}.jfig.armed.s6 .jcaps .c6{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}.jfig.armed.s7 .jcaps .c7{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}.jfig.armed.s8 .jcaps .c8{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}
+  .jfig.armed.s2 .jcaps .c1{opacity:0;transition:opacity 160ms linear;}.jfig.armed.s3 .jcaps .c2{opacity:0;transition:opacity 160ms linear;}.jfig.armed.s4 .jcaps .c3{opacity:0;transition:opacity 160ms linear;}.jfig.armed.s5 .jcaps .c4{opacity:0;transition:opacity 160ms linear;}.jfig.armed.s6 .jcaps .c5{opacity:0;transition:opacity 160ms linear;}.jfig.armed.s7 .jcaps .c6{opacity:0;transition:opacity 160ms linear;}.jfig.armed.s8 .jcaps .c7{opacity:0;transition:opacity 160ms linear;}
+  @media (prefers-reduced-motion:reduce){ .jfig.armed .jcaps li{transition:none;} }
+  /* the Burj Khalifa: a plain sentence about land and vision, not a quote */
+  .tower-line{font-family:"Jost",sans-serif;font-style:normal;font-weight:400;font-size:var(--t-16);line-height:1.5;max-width:36ch;}
+  /* the subdivision: once the road and lots arrive, the constraints step back so the layout reads */
+  .jfig .lot{stroke-width:2;}
+  .jfig .roadf{fill:var(--on-verde);opacity:.28;stroke:none;}
+  .jfig .zone{transition:opacity 700ms var(--ease-out);}
+  .jfig.armed.s8 .zone{opacity:.45;}

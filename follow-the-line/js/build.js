@@ -11,6 +11,33 @@ import {
 } from './layout.js';
 import { GRADE } from './world.js';
 import { box, merge, paint, ribbon, resample, lerpT, stagger, NEVER, IN_ALWAYS, instanced, trs } from './kit.js';
+import { homeTimes } from './houses.js';
+
+// One builder-ready lot, as places on the land: what her company leaves for the buyer's builder.
+// build.js builds it on every lot (The Work), camera.js frames the featured one, story.js names its parts.
+export function readyLot(L, lot) {
+  const { U, V, rotY } = lot.frame;
+  const mid = lot.front[Math.floor(lot.front.length / 2)];
+  const toW = (u, v) => add(mid, add(mul(U, u), mul(V, v)));
+  const F = lot.drive ? lot.drive.apron[1] : mid;
+  const sd = dot(sub(F, mid), U) >= 0 ? -1 : 1;           // stubs and stake stand away from the driveway
+  let pad = null;
+  if (lot.house) {
+    let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
+    for (const r of lot.house.footprint) for (const p of r) {
+      const d = sub(p, mid), u = dot(d, U), v = dot(d, V);
+      u0 = Math.min(u0, u); u1 = Math.max(u1, u); v0 = Math.min(v0, v); v1 = Math.max(v1, v);
+    }
+    pad = { c: toW((u0 + u1) / 2, (v0 + v1) / 2), w: u1 - u0 + 5, d: v1 - v0 + 5 };
+  }
+  let culvert = null;
+  if (lot.drive && lot.side !== 'C') {
+    const [P, Fp] = lot.drive.apron;
+    culvert = add(P, mul(norm(sub(Fp, P)), SWALE_OFF - (PAVE_HALF - 0.8)));
+  }
+  const road = L.spine.at(L.spine.nearest(mid).s).p;
+  return { lot, mid, rotY, pad, culvert, road, pin: lot.front[0], water: toW(sd * 4, 2.4), power: toW(sd * 8, 2.4), sign: toW(sd * 10, 3.4) };
+}
 
 const PAVE_TOP = GRADE + 0.31;
 
@@ -23,6 +50,8 @@ export function buildSite(L, reg, tier, terrain) {
   const realMid = (T.real[0] + T.real[1]) / 2;
   const OUT_REAL = [realMid, T.real[1]];
   const jc = (hex, k = 0.035) => new THREE.Color(hex).offsetHSL(0, 0, (R() - 0.5) * k);
+  // The Work: when each lot's home arrives (after it sells) — the driveway past the apron and the lot's stake follow it
+  const homeT = WORK ? homeTimes(L) : null;
 
   // Height for drawn lines: on graded ground just above the grade, elsewhere above the local blocks.
   const lineY = (p, afterGrading) => {
@@ -245,13 +274,18 @@ export function buildSite(L, reg, tier, terrain) {
     const full = [P, ...lot.drive.path];
     const { out, total } = resample(full, 1.6);
     const apronLen = len(sub(F, P));
+    const ht = homeT && homeT.get(lot.id);
     out.forEach((o) => {
       const t0 = d0 + (d1 - d0) * (o.d / total) * 0.8;
       const inApron = o.d < apronLen;
       const k = Math.min(1, o.d / apronLen);
       const w = inApron ? 6.6 + (lot.drive.width - 6.6) * k : lot.drive.width;
       const h = inApron ? 0.3 - 0.18 * k : 0.12;
-      addSlab(o.p[0], GRADE, o.p[1], o.ang, 1.72, h, w, jc(C.concrete, 0.025), [t0, t0 + (d1 - d0) * 0.2]);
+      // The Work: the builder-ready lot has its apron; the drive up to a garage is laid by the buyer's builder
+      if (!inApron && ht) {
+        const tb = ht[0] + (ht[1] - ht[0]) * 0.35 * ((o.d - apronLen) / Math.max(1, total - apronLen));
+        addSlab(o.p[0], GRADE, o.p[1], o.ang, 1.72, h, w, jc(C.concrete, 0.025), [tb, tb + (ht[1] - ht[0]) * 0.1]);
+      } else addSlab(o.p[0], GRADE, o.p[1], o.ang, 1.72, h, w, jc(C.concrete, 0.025), [t0, t0 + (d1 - d0) * 0.2]);
     });
     drivePaths.push({ lot, full, d0, d1 });
     if (lot.side !== 'C') {
@@ -376,6 +410,33 @@ export function buildSite(L, reg, tier, terrain) {
     fixtures.forEach((s, i) => fa.set(s.t, i * 4));
     fg.setAttribute('aLife', new THREE.InstancedBufferAttribute(fa, 4));
     group.add(instanced(fg, life(new THREE.MeshStandardMaterial({ roughness: 0.7 }), MODE.POP, { edge: 0.12 }), fixtures.map((s) => s.m), { colors: fixtures.map((s) => s.c) }));
+  }
+
+  // ---------- The Work: builder-ready lots — what her company leaves for the buyer's builder ----------
+  // a cleared pad where the house can go, a water riser with its meter box and an electric pedestal at the
+  // frontage, and a for-sale stake facing the road that comes down when the lot sells (the pad goes under the
+  // home when the buyer's builder starts). Corner pins, the apron and culvert and the finished road already stand.
+  if (WORK) {
+    const items = [];
+    const soil = new THREE.Color(C.clay);
+    for (const lot of L.lots) {
+      const rl = readyLot(L, lot), f = lotF(lot), ht = homeT.get(lot.id);
+      const tf = stagger(T.fixtures, f, 0.3);
+      if (rl.pad) items.push({ m: trs(rl.pad.c[0], GRADE - 0.02, rl.pad.c[1], rl.rotY, rl.pad.w, 0.2, rl.pad.d), c: soil, t: [...stagger(T.lotClearing, f, 0.3), ...(ht ? [ht[0], ht[0] + 0.003] : NEVER)] });
+      // (drawn a little larger than life, like everything in this model, so they read from the close-up)
+      items.push({ m: trs(rl.water[0], GRADE, rl.water[1], rl.rotY, 0.5, 1.7, 0.5), c: new THREE.Color(C.pipeWater), t: [...tf, ...NEVER] });
+      items.push({ m: trs(rl.water[0], GRADE, rl.water[1], rl.rotY, 1.3, 0.5, 1.0), c: new THREE.Color(0x9A9386), t: [...tf, ...NEVER] });
+      items.push({ m: trs(rl.power[0], GRADE, rl.power[1], rl.rotY, 1.0, 1.6, 0.8), c: new THREE.Color(C.pipePower), t: [...tf, ...NEVER] });
+      const sold = ht ? [ht[0] - 0.004, ht[0]] : NEVER;
+      items.push({ m: trs(rl.sign[0], GRADE, rl.sign[1], rl.rotY, 0.3, 3.0, 0.3), c: new THREE.Color(0xC9A57C), t: [...tf, ...sold] });
+      items.push({ m: trs(rl.sign[0], GRADE + 1.6, rl.sign[1], rl.rotY, 2.8, 1.5, 0.16), c: new THREE.Color(0xF5EFE4), t: [...tf, ...sold] });
+      items.push({ m: trs(rl.sign[0], GRADE + 2.75, rl.sign[1], rl.rotY, 2.8, 0.28, 0.2), c: new THREE.Color(0x8F7546), t: [...tf, ...sold] });
+    }
+    const g = new THREE.BoxGeometry(1, 1, 1); g.translate(0, 0.5, 0);
+    const arr = new Float32Array(items.length * 4);
+    items.forEach((s, i) => arr.set(s.t, i * 4));
+    g.setAttribute('aLife', new THREE.InstancedBufferAttribute(arr, 4));
+    group.add(instanced(g, life(new THREE.MeshStandardMaterial({ roughness: 0.85 }), MODE.POP, { edge: 0.1 }), items.map((s) => s.m), { colors: items.map((s) => s.c) }));
   }
 
   // centreline, dashed, while the road is being staked and built

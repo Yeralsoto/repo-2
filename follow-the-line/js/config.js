@@ -85,8 +85,8 @@ FILM.deconstruct = { homes: NEV, framing: NEVER4, footprint: NEVER4, lots: FILM.
 // tools/build.py use the same numbers) and squeezed into 0–0.72, so it reads faster. Every line of
 // copy changes the land itself — evidence of growth, the parcel, constraints, the plat on the ground,
 // phases, stakes, clearing, the road, finished lots, the first homes — while the approval path (the
-// subdivision's own road, js/story.js) lights one milestone at a time; the first home is built in the
-// open the moment the plat is recorded. THE ENDING (0.72–1) has no
+// subdivision's own road, js/story.js) lights one milestone at a time; when the plat is recorded the camera
+// comes down to one builder-ready lot, and homes follow only once the lots sell. THE ENDING (0.72–1) has no
 // words: the street lives, the region keeps growing into new subdivisions, every
 // scattered part of the work falls into its place on one chronology, the network freezes, and its one
 // line becomes her mark, "I tend to follow the line." and her name.
@@ -147,14 +147,12 @@ const WORK_STORY_T = sq({
   stakesOut: [0.708, 0.714],
   lotClearing: [0.710, 0.718],
   lawn: [0.716, 0.724],
-  // the plat is recorded and the lots are finished: one home is built in the open, right there —
-  // then, as the market takes the lots, the rest of the street goes up
-  hero: {
-    foundation: [0.726, 0.729], framing: [0.728, 0.735], roofStructure: [0.734, 0.738], walls: [0.737, 0.742],
-    roof: [0.741, 0.744], windows: [0.743, 0.746], lift: [0.746, 0.748, 0.752, 0.754], interior: [0.747, 0.752], finish: [0.753, 0.757],
-  },
-  firstHomes: [0.764, 0.774],
-  homesRest: [0.770, 0.800],
+  // the plat is recorded and the lots are finished: the camera comes down to one builder-ready lot — the
+  // cleared pad, water and electric stubs, corner pins, the driveway culvert and apron, the finished road and a
+  // for-sale stake (build.js readyLot). Her company never builds the homes (her correction, 2026-09-14): only
+  // once the market takes the lots do the buyers' builders put houses up, lot by lot
+  firstHomes: [0.778, 0.788],
+  homesRest: [0.784, 0.806],
   // the next deal: a boundary, a future road, homesites — possibility again
   expansion: { lines: [0.826, 0.846], infra: [0.838, 0.850] },
   // the layers of judgment drawn over the land (js/story.js); four values = in-start, in-end, out-start, out-end
@@ -183,6 +181,10 @@ const WORK_STORY_T = sq({
     closer: [0.418, 0.428, 0.460, 0.466], closerCollapse: [0.434, 0.446], closerAcross: [0.446, 0.458],
     // diligence is the boundary survey on the land (no diagram); the title and utility beats are gone
     civil: [0.512, 0.528, 0.564, 0.570], review: [0.540, 0.556], reviewChange: [0.548, 0.556],
+    // entitlements in hand: the road base and the utilities start on the land (no failed shape — her ask)
+    groundwork: [0.548, 0.562], groundworkNotes: [0.550, 0.553, 0.564, 0.570],
+    // the builder-ready lot, named piece by piece in its close-up; then the buyer's builder, once lots sell
+    ready: [0.733, 0.737, 0.752, 0.757], builders: [0.778, 0.781, 0.786, 0.790],
     lanes: [0.604, 0.618, 0.634, 0.640], laneDeps: [0.620, 0.632],
     schedule: [0.646, 0.654, 0.712, 0.718], problem: [0.676, 0.682], adjust: [0.684, 0.694],
     markets: [0.758, 0.764, 0.784, 0.790], contract: [0.764, 0.776], sold: [0.770, 0.784],
@@ -204,7 +206,7 @@ const WORK_STORY_T = sq({
   },
 });
 
-// the ending, on the final scale: one home built in the open, the rest of the street, life, the drive
+// the ending, on the final scale: the street the buyers' builders finished, life, the drive
 // out to the public road, and then the region — the next site becomes a subdivision, another one
 // starts beside the first comparable, and farther out new boundaries and roads are being drawn
 const WORK_T = {

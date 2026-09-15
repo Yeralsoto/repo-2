@@ -228,7 +228,7 @@ function init(reduced) {
   }
 
   // Compile every program up front so the first scroll does not stutter.
-  for (const probe of [0, T.boundary[1], T.surface[1], T.hero.walls[1], T.real[1], T.growth.retail[1], T.network.lines[1]]) { U.uP.value = probe; renderer.compile(scene, camera); }
+  for (const probe of [0, T.boundary[1], T.surface[1], T.hero ? T.hero.walls[1] : T.firstHomes[1], T.real[1], T.growth.retail[1], T.network.lines[1]]) { U.uP.value = probe; renderer.compile(scene, camera); }
 
   let pS = targetP(), last = performance.now(), lastRender = 0, acc = 0, frames = 0;
   render(pS);

@@ -1,10 +1,12 @@
 // Homes. Three footprints (from layout.js), gable / hip / low-slope roofs, two facade families,
 // small material shifts. Every home sits where layout.js proved it fits inside its own lot.
-// One homesite is built in the open, layer by layer; the rest arrive lot by lot.
+// The standalone film builds one homesite in the open, layer by layer. The Work never does: her company
+// leaves builder-ready lots (her correction, 2026-09-14), so there every home arrives only after its lot
+// sells — the buyer's builder's work, lot by lot.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { life, lifeDepth, MODE, C, setLife, setLift } from './shaders.js';
-import { T } from './config.js';
+import { T, WORK } from './config.js';
 import { rng } from './layout.js';
 import { GRADE, gable } from './world.js';
 import { box, merge, paint, stagger, NEVER, IN_ALWAYS } from './kit.js';
@@ -14,9 +16,7 @@ const PLINTH = 0.45;
 export function buildHouses(L, tier) {
   const group = new THREE.Group();
   const R = rng(3131);
-  const built = L.lots.filter((l) => l.house).map((l) => l.id);
-  const others = built.filter((id) => id !== L.hero);
-  const first = others.slice(0, 3), rest = others.slice(3);
+  const times = homeTimes(L);
   const edges = [];
   const porchLights = [];
   let hero = null;
@@ -38,15 +38,12 @@ export function buildHouses(L, tier) {
     eg.translate(h.pos[0], GRADE, h.pos[1]);
     edges.push(eg.attributes.position.array);
 
-    if (lot.id === L.hero) {
+    if (lot.id === L.hero && !WORK) {
       hero = buildHero(lot, spec, tier);
       group.add(hero.group);
       continue;
     }
-    const isFirst = first.includes(lot.id);
-    const list = isFirst ? first : rest;
-    const f = list.length > 1 ? list.indexOf(lot.id) / (list.length - 1) : 0;
-    const t = [...stagger(isFirst ? T.firstHomes : T.homesRest, f, isFirst ? 0.4 : 0.14), ...T.deconstruct.homes];
+    const t = [...times.get(lot.id), ...T.deconstruct.homes];
     const geo = merge([...spec.slab, ...spec.walls, ...spec.fascia, ...spec.roof, ...spec.glass, ...spec.trim]);
     setLife(geo, t);
     const mesh = new THREE.Mesh(geo, mat);
@@ -72,7 +69,22 @@ export function buildHouses(L, tier) {
   lines.frustumCulled = false;
   group.add(lines);
 
-  return { group, hero, porchLights };
+  // on The Work there is no hero construction; the featured lot is still the one the camera visits
+  const site = L.lots[L.hero];
+  return { group, hero: hero || { lot: site, pos: site.house ? site.house.pos : site.frame.M, rotY: site.frame.rotY }, porchLights };
+}
+
+// When each home arrives: three first, then the rest of the street. On The Work the featured lot sells first,
+// so its buyer's builder is among the first three (build.js takes its for-sale stake down just before).
+export function homeTimes(L) {
+  const built = L.lots.filter((l) => l.house).map((l) => l.id);
+  const order = WORK ? [L.hero, ...built.filter((id) => id !== L.hero)] : built.filter((id) => id !== L.hero);
+  const first = order.slice(0, 3), rest = order.slice(3);
+  const times = new Map();
+  for (const [list, win, dur] of [[first, T.firstHomes, 0.4], [rest, T.homesRest, 0.14]]) {
+    list.forEach((id, i) => times.set(id, stagger(win, list.length > 1 ? i / (list.length - 1) : 0, dur)));
+  }
+  return times;
 }
 
 // ---------- one home, as parts in house-local coordinates (x along frontage, front at −z) ----------
@@ -176,7 +188,7 @@ function hipRoof(w, d, h, color) {
   return paint(g, color);
 }
 
-// ---------- the hero homesite, assembled ----------
+// ---------- the hero homesite, assembled (the standalone film only — The Work never builds a home) ----------
 function mergeTimed(items) {
   const geos = items.map(({ geo, t }) => {
     const g = geo.index ? geo.toNonIndexed() : geo;

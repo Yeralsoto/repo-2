@@ -6,9 +6,9 @@
 // reality feeding the next underwriting. Everything is a function of p; nothing loops.
 import * as THREE from 'three';
 import { T, SITES } from './config.js';
-import { buildLayout, pointInPoly, rowPolygons, PUBLIC, BULB_ROW, rng } from './layout.js';
+import { buildLayout, pointInPoly, rowPolygons, PUBLIC, BULB_ROW, PAVE_HALF, rng } from './layout.js';
 import { GRADE, SITE_CENTER, FARMS } from './world.js';
-import { offsetPoly, clipHalf } from './build.js';
+import { offsetPoly, clipHalf, readyLot } from './build.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -42,6 +42,9 @@ const WORDS = {
     fbRows: ['assumed', 'actual'],
     stage: ['stage 1 · at closing', 'stage 2 · month 12', 'stage 3 · month 24'],
     path: ['opportunity', 'feasible', 'concept plan', 'underwritten', 'under contract', 'diligence cleared', 'plat approved', 'permits issued', 'final plat recorded', 'lots sold'],
+    ground: ['road base', 'utilities'],
+    ready: ['cleared pad', 'water stub', 'electric stub', 'driveway culvert', 'corner pin', 'finished road'],
+    builders: ['the buyer’s builder'],
   },
   es: {
     opp: ['frente', 'acceso', 'vecinos', 'terreno', 'agua'],
@@ -67,6 +70,9 @@ const WORDS = {
     fbRows: ['supuesto', 'real'],
     stage: ['etapa 1 · al cierre', 'etapa 2 · mes 12', 'etapa 3 · mes 24'],
     path: ['oportunidad', 'viable', 'plano conceptual', 'analizado', 'bajo contrato', 'diligencia cerrada', 'plano aprobado', 'permisos emitidos', 'plano final registrado', 'lotes vendidos'],
+    ground: ['base de la vía', 'servicios'],
+    ready: ['plataforma despejada', 'acometida de agua', 'acometida eléctrica', 'alcantarilla de acceso', 'mojón de esquina', 'vía terminada'],
+    builders: ['el constructor del comprador'],
   },
 };
 
@@ -195,7 +201,8 @@ export function createStory(stage, L) {
 
   // words anchored to places on the land, arriving one after another
   // (narrow screens: one at a time, from w[0] until endNarrow, and a word near the right edge leans left)
-  const noteSet = (g, grp, anchors, w, endNarrow = w[3]) => {
+  // (seq: one at a time on every width, for sets whose places sit close together)
+  const noteSet = (g, grp, anchors, w, endNarrow = w[3], seq = false) => {
     const items = anchors.map((anchor, i) => {
       const gg = el('g', {}, g);
       return { anchor, gg, dot: circ(gg, 2.4, 'dot'), lead: plainPath(gg, 'brass thin'), text: word(gg, `${grp}.${i}`) };
@@ -203,7 +210,7 @@ export function createStory(stage, L) {
     return (p) => {
       const step = (w[1] - w[0] - 0.006) / Math.max(1, items.length - 1);
       items.forEach((n, i) => {
-        const k = NARROW ? oneAt(i, items.length, w[0], endNarrow, p)
+        const k = NARROW || seq ? oneAt(i, items.length, w[0], endNarrow, p)
           : smooth(w[0] + i * step, w[0] + i * step + 0.006, p) * (1 - smooth(w[2], w[3], p));
         const a = P(n.anchor);
         at(n.dot, a);
@@ -243,6 +250,8 @@ export function createStory(stage, L) {
       return out;
     };
     const n = S.path.length;
+    // entitlements in hand, the road base is laid along this same centreline, under the path (story: groundwork)
+    const base = S.groundwork ? el('path', { pathLength: '1', 'stroke-dasharray': '1', 'stroke-dashoffset': '1', style: 'fill:none;stroke:#1E4638;stroke-linecap:butt;stroke-linejoin:round' }, g) : null;
     const ghost = el('path', { style: 'fill:none;stroke:#8F7546;stroke-width:1;stroke-dasharray:5 5' }, g);
     const lit = el('path', { style: 'fill:none;stroke:#8F7546;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round' }, g);
     // every dot first, then every name, so a later milestone's dot never sits on an earlier name
@@ -253,6 +262,16 @@ export function createStory(stage, L) {
       const out = 1 - smooth(S.pathOut[0], S.pathOut[1], p);
       const ks = S.path.map((m) => smooth(m - 0.004, m + 0.004, p));
       const frac = ks.reduce((a, b) => a + b, 0) / n;
+      if (base) {
+        const kb = 1 - smooth(S.civil[2], S.civil[3], p), kd = smooth(S.groundwork[0], S.groundwork[1], p);
+        show(base, kd * kb > 0.001);
+        if (kd * kb > 0.001) {
+          // as wide as the pavement on the screen, soft, so the one path line stays the line
+          const a = P(L.spine.off(L.S * 0.5, -PAVE_HALF)), b = P(L.spine.off(L.S * 0.5, PAVE_HALF));
+          base.setAttribute('d', dWorld(route)); base.style.strokeWidth = f1(Math.max(5, Math.hypot(a[0] - b[0], a[1] - b[1])));
+          draw(base, kd); opa(base, 0.26 * kb);
+        }
+      }
       ghost.setAttribute('d', dWorld(route)); opa(ghost, smooth(S.path[0] - 0.006, S.path[0], p) * out * 0.7);
       lit.setAttribute('d', dWorld(upTo(Math.max(0.002, frac)))); opa(lit, out);
       marks.forEach((mk, i) => {
@@ -260,7 +279,8 @@ export function createStory(stage, L) {
         at(mk.c, q); mk.c.classList.toggle('done', k > 0.5); opa(mk.c, k * out);
         // the milestone name steps aside while the feedback rails are read across the same ground
         mk.t._q = q; mk.t.setAttribute('text-anchor', 'start');
-        put(mk.t, q[0] + 10, q[1] + 4); opa(mk.t, k * (1 - newer) * (1 - win4(S.feedback, p)) * out);
+        // (and while the builder-ready lot is named piece by piece in its close-up)
+        put(mk.t, q[0] + 10, q[1] + 4); opa(mk.t, k * (1 - newer) * (1 - win4(S.feedback, p)) * (S.ready ? 1 - win4([S.ready[0], S.ready[1], S.ready[3] + 0.006, S.ready[3] + 0.012], p) : 1) * out);
       });
     };
   });
@@ -654,15 +674,20 @@ export function createStory(stage, L) {
     const dims = plainPath(g, 'brass thin'), stations = plainPath(g, 'ink thin'), contours = plainPath(g, 'ink thin');
     const nodes = [0, 1, 2, 3, 4].map((i) => ({ c: circ(g, 4, 'node'), t: word(g, 'review.' + i, 'middle', 'dia') }));
     const links = [0, 1, 2, 3].map(() => drawPath(g, 'ink thin'));
-    const loop = drawPath(g, 'brass');
-    const pie = L.lots.find((l) => l.key === 'C2') || L.lots[L.lots.length - 1];
-    const pieAfter = resample(pie.poly, 40, true);
-    const pieBefore = pieAfter.map((q) => [L.C[0] + (q[0] - L.C[0]) * 0.86, L.C[1] + (q[1] - L.C[1]) * 0.86]);
-    const pieEl = plainPath(g, 'fail');
+    // (her ask, 2026-09-14: no failed shape and no loop back here — entitlements are in hand, and the road base
+    // and utilities start: the base is drawn under the approval path (scene 0), the water laterals here)
+    const lats = L.lots.filter((l) => l.side !== 'C').map((l) => {
+      const mid = l.front[Math.floor(l.front.length / 2)], s = L.spine.nearest(mid).s, V = l.frame.V;
+      return { e: drawPath(g, 'brass thin'), s, a: L.spine.off(s, (l.side === 'E' ? 1 : -1) * (PAVE_HALF + 1)), b: [mid[0] + V[0] * 2, mid[1] + V[1] * 2] };
+    }).sort((x, y) => x.s - y.s);
+    const groundNotes = S.groundworkNotes
+      ? noteSet(g, 'ground', [L.spine.at(L.S * 0.3).p, lats.length ? lats[0].b : L.C], S.groundworkNotes, S.groundworkNotes[3], true)
+      : null;
     const dimSegs = [], stationSegs = [], contourRuns = [];
+    // frontage dimensions sit inside the lots, clear of the road, so the approval path stays the one line on it
     for (const lot of L.lots.filter((l, i) => l.side !== 'C' && i % 2 === 0)) {
       const a = lot.front[0], b = lot.front[lot.front.length - 1], V = lot.frame.V;
-      const a2 = [a[0] - V[0] * 4, a[1] - V[1] * 4], b2 = [b[0] - V[0] * 4, b[1] - V[1] * 4];
+      const a2 = [a[0] + V[0] * 4, a[1] + V[1] * 4], b2 = [b[0] + V[0] * 4, b[1] + V[1] * 4];
       dimSegs.push([a2, b2], [[a2[0] - V[0] * 1.5, a2[1] - V[1] * 1.5], [a2[0] + V[0] * 1.5, a2[1] + V[1] * 1.5]], [[b2[0] - V[0] * 1.5, b2[1] - V[1] * 1.5], [b2[0] + V[0] * 1.5, b2[1] + V[1] * 1.5]]);
     }
     for (let s = 10; s < L.S; s += 30) { const q = L.spine.at(s); stationSegs.push([[q.p[0] - q.n[0] * 5, q.p[1] - q.n[1] * 5], [q.p[0] + q.n[0] * 5, q.p[1] + q.n[1] * 5]]); }
@@ -675,7 +700,8 @@ export function createStory(stage, L) {
     }
     return (p) => {
       const out = 1 - smooth(S.civil[2], S.civil[3], p), kT = smooth(S.civil[0], S.civil[1], p);
-      dims.setAttribute('d', dimSegs.map(([a, b]) => seg(P(a), P(b))).join('')); opa(dims, kT * out);
+      // (narrow: no dimensions — at phone size any line beside the road reads as a second path)
+      dims.setAttribute('d', dimSegs.map(([a, b]) => seg(P(a), P(b))).join('')); opa(dims, kT * out * (NARROW ? 0 : 1));
       stations.setAttribute('d', stationSegs.map(([a, b]) => seg(P(a), P(b))).join('')); opa(stations, kT * out);
       contours.setAttribute('d', contourRuns.map((r) => dWorld(r)).join('')); opa(contours, kT * out * 0.45);
       // concept → submission → comment → revision → approval, with one loop back
@@ -694,12 +720,15 @@ export function createStory(stage, L) {
         e.setAttribute('d', seg([nx(i) + 7, y], [nx(i + 1) - 7, y]));
         draw(e, smooth(S.review[0] + (i + 0.6) * span * 0.16, S.review[0] + (i + 0.6) * span * 0.16 + span * 0.12, p)); opa(e, out);
       });
-      loop.setAttribute('d', `M${f1(nx(2))} ${f1(y - 8)}Q${f1((nx(1) + nx(2)) / 2)} ${f1(y - 44)} ${f1(nx(1))} ${f1(y - 8)}`);
-      draw(loop, smooth(S.review[0] + span * 0.5, S.review[0] + span * 0.72, p)); opa(loop, out);
-      // one plan changes after review
-      const kc = smooth(S.reviewChange[0], S.reviewChange[1], p);
-      pieEl.setAttribute('d', dWorld(lerpPts(pieBefore, pieAfter, kc), true));
-      opa(pieEl, smooth(S.review[0] + span * 0.3, S.review[0] + span * 0.45, p) * out);
+      // utilities start: a water lateral from the road base to each lot's frontage, in order up the road
+      if (S.groundwork) {
+        const gw = S.groundwork[1] - S.groundwork[0];
+        lats.forEach((l, i) => {
+          const t0 = S.groundwork[0] + gw * (0.2 + (0.75 * i) / Math.max(1, lats.length - 1));
+          l.e.setAttribute('d', seg(P(l.a), P(l.b))); draw(l.e, smooth(t0, t0 + gw * 0.12, p)); opa(l.e, out);
+        });
+      }
+      if (groundNotes) groundNotes(p);
     };
   });
 
@@ -777,8 +806,17 @@ export function createStory(stage, L) {
     };
   });
 
+  // ---------- one builder-ready lot, named piece by piece ----------
+  // her company leaves the lot ready for the buyer's vision; the camera is down on it (camera.js), one word at a time
+  if (S.ready) scene([S.ready[0], S.ready[3]], (g) => {
+    const r = readyLot(L, heroLot);
+    return noteSet(g, 'ready', [r.pad ? r.pad.c : r.mid, r.water, r.power, r.culvert || r.mid, r.pin, r.road], S.ready, S.ready[3], true);
+  });
+
   // ---------- lots reaching the market ----------
   scene([S.markets[0], S.markets[3]], (g) => {
+    // once the lots sell, the homes that go up are the buyers' builders' work, not hers
+    const builders = S.builders ? noteSet(g, 'builders', [heroLot.house ? heroLot.house.pos : heroLot.frame.M], S.builders) : null;
     const R = rng(71);
     const lots = L.lots.filter((l) => l.drive).map((l) => ({ l, o: R() })).sort((a, b) => a.o - b.o);
     const marks = lots.map(({ l }, i) => {
@@ -798,6 +836,7 @@ export function createStory(stage, L) {
         opa(m.dot, kc * (1 - ks) * out); opa(m.sold, ks * out);
       });
       buyers.forEach((b) => { b.e.setAttribute('d', dWorld(b.pts)); draw(b.e, smooth(S.markets[0], S.markets[1] + 0.006, p)); opa(b.e, out * 0.5); });
+      if (builders) builders(p);
     };
   });
 

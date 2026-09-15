@@ -35,7 +35,9 @@ function boot() {
   // ---------------------------------------------------------------- the score
   // First written for a 1500svh track; El Dorado added 300svh after the flight. M keeps every earlier moment
   // at the same scroll distance (0–.785 → 0–.654) and the ending after it (.785–1 → .821–1). build.py mirrors it.
-  const M = (v) => (v <= 0.785 ? v * (0.654 / 0.785) : 0.821 + (v - 0.785) * (0.179 / 0.215));
+  // Her ask (2026-09-14): the drawing starts with the first scroll — the title and first lines (0–.30) now take 0–.10.
+  const M = (v) => (v <= 0.085 ? v * (0.012 / 0.085) : v <= 0.30 ? 0.012 + (v - 0.085) * (0.088 / 0.215)
+    : v <= 0.785 ? 0.10 + (v - 0.30) * (0.554 / 0.485) : 0.821 + (v - 0.785) * (0.179 / 0.215));
   const W2 = (w) => [M(w[0]), M(w[1])];
   const PH = {
     build: { terrain: W2([0.30, 0.40]), strip: W2([0.36, 0.42]), runway: W2([0.38, 0.45]), taxi: W2([0.43, 0.49]), exits: W2([0.47, 0.51]), pads: W2([0.46, 0.50]), marks: W2([0.50, 0.535]), context: W2([0.42, 0.48]) },

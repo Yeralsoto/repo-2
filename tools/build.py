@@ -487,9 +487,10 @@ WORK_STORY = [
         ("Every scope becomes time and cost.", "Cada alcance se vuelve tiempo y costo.", 0.660),
         ("The plan matters most when reality changes it.", "El plan importa más cuando la realidad lo cambia.", 0.690)]),
     (0.740, 0.743, "", [
-        ("There is a point when raw land becomes finished inventory.", "Hay un momento en que la tierra en bruto se vuelve inventario terminado.", 0.722)]),
+        ("Raw land becomes inventory when the lots are ready for the buyer’s vision.", "La tierra en bruto se vuelve inventario cuando los lotes están listos para la visión del comprador.", 0.722),
+        ("We do not build the homes. We leave a builder-ready lot for the people who will.", "No construimos las casas. Dejamos un lote listo para quienes las van a construir.", 0.731)]),
     (0.780, 0.783, "", [
-        ("The project is not complete because construction stopped.", "El proyecto no está terminado porque la obra se detuvo.", 0.747),
+        ("The project is not complete because the road is finished.", "El proyecto no está terminado porque la vía se terminó.", 0.747),
         ("It is complete when the market takes it from us.", "Está terminado cuando el mercado nos lo toma.", 0.764)]),
     (0.814, 0.818, "", [
         ("The finished deal goes back into the next one.", "El negocio terminado vuelve al siguiente.", 0.787),
@@ -509,21 +510,29 @@ WORK_STORY = [
 
 # her ask: the keep-scrolling tab gives a reason to keep going — what is about to happen, one line per stretch
 def more_next(items):
-    return '<span class="ws-more-next">' + "".join(tx("span", en, es, extra=f' data-from="{f}"') for f, en, es in items) + '</span>'
+    return '<span class="ws-more-next">' + "".join(tx("span", en, es, extra=f' data-from="{round(f, 4)}"') for f, en, es in items) + '</span>'
 WORK_NEXT = [   # from = how many story groups have been reached
     (0, "Up next · the land gets its first lines", "A continuación · el terreno recibe sus primeras líneas"),
     (3, "Up next · the numbers try to break it", "A continuación · los números intentan romperlo"),
     (6, "Up next · the deal goes under contract", "A continuación · el negocio se firma"),
     (8, "Up next · the approvals, one by one", "A continuación · los permisos, uno por uno"),
-    (10, "Up next · the first home goes up", "A continuación · se levanta la primera casa"),
+    (10, "Up next · the lots get ready for someone else’s vision", "A continuación · los lotes quedan listos para la visión de otro"),
     (13, "Almost there · what happens after the lots sell", "Ya casi · lo que pasa después de vender los lotes"),
     (17, "The last line is next", "La última línea es lo siguiente"),
 ]
+def aero_m(v):
+    # her ask (2026-09-14): the drawing starts with the first scroll. The title and the first lines (0–.30) are
+    # compressed to 0–.10; the build and the flight take the room; El Dorado and the ending are unchanged.
+    if v <= 0.085: return v * (0.012 / 0.085)
+    if v <= 0.30: return 0.012 + (v - 0.085) * (0.088 / 0.215)
+    if v <= 0.785: return 0.10 + (v - 0.30) * (0.554 / 0.485)
+    return 0.821 + (v - 0.785) * (0.179 / 0.215)
+
 AERO_NEXT = [   # from = the aerodrome's scroll value (aerodrome-3d/main.js)
     (0, "Up next · the drawing becomes blocks", "A continuación · el dibujo se vuelve bloques"),
-    (0.25, "Up next · an A321 rolls out", "A continuación · sale un A321"),
-    (0.44, "Up next · it takes off", "A continuación · despega"),
-    (0.62, "Up next · where it was meant to be", "A continuación · dónde iba a estar"),
+    (aero_m(0.30), "Up next · an A321 rolls out", "A continuación · sale un A321"),
+    (aero_m(0.528), "Up next · it takes off", "A continuación · despega"),
+    (aero_m(0.744), "Up next · where it was meant to be", "A continuación · dónde iba a estar"),
     (0.80, "Up next · the thesis behind it", "A continuación · la tesis detrás"),
     (0.87, "Almost there · the last line", "Ya casi · la última línea"),
 ]
@@ -697,12 +706,12 @@ def fig_building():
                 continue   # the entrance
             cls = "win vac" if (f, j) in vacant else "win"
             wins += f'<rect class="{cls}" x="{x}" y="{y}" width="24" height="30"/>'
-    lenses = ""
-    for k, (stage, name, a, b) in enumerate(BUILDING_LENSES):
-        y = 70 + k * 84
-        lenses += (f'<g class="blens {stage}"><path d="M350 {y - 22}H610"/>{svg_label(*name, 350, y, "start", "gl")}'
-                   f'{svg_label(*a, 350, y + 22, "start", "gl small blw")}{svg_label(*b, 350, y + 40, "start", "gl small blw")}</g>')
-    return ('<svg class="mfig-svg" viewBox="0 0 640 400" role="img" '
+    # her note (2026-09-14): no words on the building. The drawing stays clear; the four readings arrive beside it as text
+    # that reflows (two columns, one on the narrowest phones), one reading per stage.
+    lenses = '<dl class="blenses">' + "".join(
+        f'<div class="blens {stage}">{tx("dt", *name, cls="caps")}{tx("dd", *a)}{tx("dd", *b)}</div>'
+        for stage, name, a, b in BUILDING_LENSES) + '</dl>'
+    return ('<svg class="mfig-svg bsvg" viewBox="20 76 310 312" role="img" '
             'aria-label="One apartment building, read four ways: physical (roof, MEP, units, common areas), operating (rent, vacancy, turnover), financial (revenue, expenses, NOI, capex) and human (the resident, management, service)." '
             'data-es-aria="Un edificio de apartamentos leído de cuatro maneras: físico (cubierta, MEP, unidades, zonas comunes), operativo (renta, vacancia, rotación), financiero (ingresos, gastos, NOI, capex) y humano (el residente, la administración, el servicio).">'
             '<path class="bground" d="M30 364H310"/><path class="bshell" d="M50 364V110H290V364"/>'
@@ -711,7 +720,7 @@ def fig_building():
             '<path class="phys" d="M78 110V94H122V110M196 110V88H238V110"/><path class="phys mep" d="M276 364V92"/>'
             '<g class="noi"><rect x="306" y="250" width="10" height="114"/><rect class="noi-e" x="306" y="300" width="10" height="64"/></g>'
             '<circle class="resident" cx="170" cy="376" r="5"/>'
-            f'{lenses}</svg>')
+            f'</svg>{lenses}')
 
 def fig_reason():
     steps = [("the story", "la historia"), ("data", "datos"), ("comparison", "comparación"), ("probabilities", "probabilidades"), ("risk", "riesgo"), ("decision", "decisión")]
@@ -830,8 +839,8 @@ def practice():
     )
     tower = (f'<figure class="mfig pfig tower" data-seq="300,1300,1500">{fig_tower()}'
              + label(("Study · Dubai · 828 m", "Estudio · Dubái · 828 m"), ("Burj Khalifa", "Burj Khalifa"), reveal=False)
-             + tx("p", "Before it was a tower it was sand, and someone who could already see it standing there.",
-                  "Antes de ser una torre fue arena, y alguien que ya podía verla en pie.", cls="tower-line")
+             + tx("p", "It stands on land that was desert. The land did not change; someone saw what it could hold.",
+                  "Se levanta sobre una tierra que era desierto. La tierra no cambió; alguien vio lo que podía sostener.", cls="tower-line")
              + '</figure>')
     opening = (f'<section class="beat threshold"><div class="wrap"><div class="th"><div>'
                f'{hook("Some things I learn because they are useful.", "Algunas cosas las aprendo porque son útiles.")}'
@@ -867,26 +876,45 @@ def legend(k, shape, en, es, x, y):
     return f'<g class="st{k}">{sw}{lab(en, es, x + 34, y, "start")}</g>'
 
 def vis_subdivision():
-    parcel = "M70 250L120 70L330 40L560 90L590 270L360 300Z"
-    lots = "".join(f'<path class="ln" d="{d}"/>' for d in
-                   ["M312 262L256 260", "M322 222L246 216", "M322 252L462 264", "M334 214L468 224", "M352 182L466 186", "M390 144L428 126"])
-    legend_items = [("ln", "one parcel", "un terreno"), ("road", "frontage", "frente"), ("la dash", "setbacks", "retiros"),
-                    ("fa", "too steep", "muy empinado"), ("fa", "easement", "servidumbre"),
-                    ("fa", "drainage", "drenaje"), ("fc", "floodplain", "inundable"), ("la", "road and lots", "vía y lotes")]
-    leg = "".join(legend(k + 1, shape, en, es, 616, 58 + k * 34) for k, (shape, en, es) in enumerate(legend_items))
-    return (svgopen(780, 340, "One irregular parcel. Frontage, setbacks, steep topography, a utility easement, drainage and a floodplain each take part of it away; the road and the lots are drawn only in what remains.",
-                    "Un terreno irregular. El frente, los retiros, la topografía empinada, una servidumbre de servicios, el drenaje y una zona inundable le quitan una parte cada uno; la vía y los lotes se dibujan solo en lo que queda.")
+    # her note (2026-09-14): one parcel on an existing road. What remains is laid out the way a subdivision really is —
+    # lots fronting the existing road, and a new road with a cul-de-sac so every other lot has road frontage too.
+    # The names of the stages are captions under the drawing (JCAPS), one at a time, never a legend inside it.
+    parcel = "M70 330L92 120L290 66L520 84L590 150L580 330Z"
+    lots = "".join(f'<path class="ln lot" d="{d}"/>' for d in [
+        "M156 330V276H318", "M212 330V276", "M268 330V276",            # lots on the existing road, west of the new road
+        "M342 276H500V330", "M395 330V276", "M448 330V276",            # and east of it
+        "M318 241H224V206", "M224 276V206H300",                        # lots on the new road
+        "M342 241H436V206", "M436 276V206H360",
+        "M224 206L262 130L330 100L398 130L436 206",                    # the pie-shaped lots around the cul-de-sac
+        "M306 170L262 130", "M330 154V100", "M354 170L398 130"])
+    return (svgopen(640, 400, "One irregular parcel on an existing road. Setbacks, steep topography, a utility easement, drainage and a creek with its floodplain each take part of it away. In what remains: lots facing the existing road, and a new road ending in a cul-de-sac with lots on both sides, so every lot has road frontage.",
+                    "Un terreno irregular sobre una vía existente. Los retiros, la topografía empinada, una servidumbre de servicios, el drenaje y una quebrada con su zona inundable le quitan una parte cada uno. En lo que queda: lotes frente a la vía existente y una vía nueva que termina en un cul-de-sac con lotes a ambos lados, para que cada lote tenga frente a una vía.")
             + f'<g class="st1"><path class="fv" d="{parcel}"/><path class="ln dr" pathLength="1" d="{parcel}"/></g>'
-            + '<g class="st2"><path class="road" d="M40 262L380 318"/></g>'
-            + '<g class="st3"><path class="la dash" d="M94 238L138 90L330 64L540 106L566 254L362 278Z"/></g>'
-            + '<g class="st4"><path class="fa" d="M430 62L560 90L566 142L446 128Z"/><path class="lt" d="M320 46C380 92 440 102 560 98"/>'
-              '<path class="lt" d="M292 72C370 122 452 132 566 138"/><path class="lt" d="M270 104C360 154 462 174 574 184"/></g>'
-            + '<g class="st5"><path class="fa" d="M170 58L198 55L268 298L238 294Z"/></g>'
-            + '<g class="st6"><path class="fa" d="M470 244C502 222 560 232 578 262L474 288Z"/><path class="la" d="M470 244C502 222 560 232 578 262"/></g>'
-            + '<g class="st7"><path class="fc" d="M88 132C132 170 128 222 168 270L140 276C98 232 104 180 76 150Z"/><path class="lc" d="M84 140C124 180 118 226 154 272"/></g>'
-            + f'<g class="st8"><path class="la dr thick" pathLength="1" d="M300 292C318 236 330 190 366 160"/><circle class="la" cx="378" cy="152" r="16"/>{lots}'
-            + lab("what remains is the project", "lo que queda es el proyecto", 330, 22, "middle", "gl small acc") + '</g>'
-            + leg + '</svg>')
+            + '<g class="st2"><path class="road" d="M24 350H616"/><path class="la dr thick" pathLength="1" d="M70 330H580"/>'
+            + lab("existing road", "vía existente", 600, 384, "end") + '</g>'
+            + '<g class="st3"><g class="zone"><path class="la dash" d="M88 318L106 134L292 82L512 98L570 156L566 318Z"/></g></g>'
+            + '<g class="st4"><g class="zone"><path class="fa" d="M440 80L520 84L590 150L586 200L452 170Z"/>'
+              '<path class="lt" d="M430 96C480 110 540 130 588 170"/><path class="lt" d="M444 132C500 144 548 164 586 190"/></g></g>'
+            + '<g class="st5"><g class="zone"><path class="fa" d="M96 146L288 90L292 104L98 162Z"/></g></g>'
+            + '<g class="st6"><g class="zone"><path class="fa" d="M506 250C536 236 572 246 580 270V330H520C504 300 494 270 506 250Z"/></g></g>'
+            + '<g class="st7"><g class="zone"><path class="fc" d="M70 330L80 222C110 244 134 286 150 330Z"/><path class="lc" d="M82 226C110 254 128 292 140 346"/></g></g>'
+            + '<g class="st8"><path class="roadf" d="M318 346V204A26 26 0 1 1 342 204V346Z"/>'
+              '<path class="la dr thick" pathLength="1" d="M318 330V204A26 26 0 1 1 342 204V330"/>'
+            + f'{lots}</g></svg>')
+
+JCAPS = {   # the stage names of a Journal drawing, shown under it one at a time as the stages arrive
+    "a-subdivision-begins-as-one-shape": [
+        ("One parcel. One shape.", "Un terreno. Una sola forma."),
+        ("It has frontage on an existing road.", "Tiene frente sobre una vía existente."),
+        ("Setbacks pull the edges in.", "Los retiros recogen los bordes."),
+        ("Too steep to build.", "Demasiado empinado para construir."),
+        ("A utility easement crosses it.", "La cruza una servidumbre de servicios."),
+        ("The water needs somewhere to go.", "El agua necesita a dónde ir."),
+        ("A creek, and its floodplain.", "Una quebrada, y su zona inundable."),
+        ("What remains is the project: lots on the existing road, and a new road with a cul-de-sac so every lot has road frontage.",
+         "Lo que queda es el proyecto: lotes sobre la vía existente, y una vía nueva con cul-de-sac para que cada lote tenga frente a una vía."),
+    ],
+}
 
 def vis_jv():
     C = (320, 190)
@@ -1093,7 +1121,9 @@ def jvisual(slug, R, thumb=False):
         fn, seq, at = JVISUALS[slug]
         if thumb:
             return f'<span class="jthumb jfig" aria-hidden="true">{fn()}</span>'
-        return f'<figure class="mfig pfig jfig" data-seq="{seq}">{fn()}</figure>', at
+        caps = ('<ol class="jcaps">' + "".join(tx("li", en, es, cls=f"c{k + 1}") for k, (en, es) in enumerate(JCAPS[slug])) + '</ol>'
+                if slug in JCAPS else "")
+        return f'<figure class="mfig pfig jfig" data-seq="{seq}">{fn()}{caps}</figure>', at
     if slug in JPHOTOS:
         src, alt, name, facts, at = JPHOTOS[slug]
         if thumb:
@@ -1312,9 +1342,8 @@ def aero_note(name, facts, at):
     return f'<div class="aero-item aero-panel aero-note" data-at="{at}">{label(facts, name, reveal=False)}</div>'
 
 def aero_at(a, b):
-    """A moment of the first 1500svh score, kept at the same scroll distance on the 1800svh track (M in main.js)."""
-    m = lambda v: v * (0.654 / 0.785) if v <= 0.785 else 0.821 + (v - 0.785) * (0.179 / 0.215)
-    return f"{m(a):.4f},{m(b):.4f}"
+    """A moment of the first score, placed on today's track (M in aerodrome-3d/main.js — keep the two identical)."""
+    return f"{aero_m(a):.4f},{aero_m(b):.4f}"
 
 # the names on the map while the camera looks east over Bogotá (positions live in aerodrome-3d/data.js PLACES)
 AERO_GEO = [("annex", "Annex · 13C–31C", "Anexo · 13C–31C"), ("river", "Río Bogotá", "Río Bogotá"),
@@ -1389,7 +1418,7 @@ def aerodrome():
     R = "../"
     en, es = "Before land, I designed somewhere to land.", "Antes de la tierra, diseñé un lugar donde aterrizar."
     stop = '<span class="stop">.</span>'
-    first = f'<div class="aero-item aero-panel" data-at="{aero_at(0, .085)}"><h1 class="aero-line" data-es-html="{A(H(es[:-1]) + stop)}">{H(en[:-1])}{stop}</h1></div>'
+    first = f'<div class="aero-item aero-panel" data-at="{aero_at(0, .20)}"><h1 class="aero-line" data-es-html="{A(H(es[:-1]) + stop)}">{H(en[:-1])}{stop}</h1></div>'
     states = "".join(tx("span", e, s, cls="aero-state caps", extra=f' data-s="{k}"') for k, e, s in AERO_STATES)
     mb_en, mb_es = f"{THESIS_MB:.1f}", f"{THESIS_MB:.1f}".replace(".", ",")
     ident = (
@@ -1406,7 +1435,7 @@ def aerodrome():
     text = (
         geo
         + first
-        + f'<div class="aero-item aero-panel" data-at="{aero_at(.15, .27)}">{tx("p", "An annex aerodrome for domestic flights, so El Dorado could keep its runways for the world.", "Un aeródromo anexo para vuelos nacionales, para que El Dorado guardara sus pistas para el mundo.", cls="aero-line")}</div>'
+        + f'<div class="aero-item aero-panel" data-at="{aero_at(.20, .30)}">{tx("p", "An annex aerodrome for domestic flights, so El Dorado could keep its runways for the world.", "Un aeródromo anexo para vuelos nacionales, para que El Dorado guardara sus pistas para el mundo.", cls="aero-line")}</div>'
         + aero_note(("Runway 13C–31C", "Pista 13C–31C"), ("2,100 m × 45 m", "2.100 m × 45 m"), aero_at(.405, .455))
         + aero_note(("Parallel taxiway", "Calle de rodaje paralela"), ("15 m wide · 190 m from the runway", "15 m de ancho · a 190 m de la pista"), aero_at(.46, .505))
         + aero_note(("Two rapid exits, two holding bays", "Dos salidas rápidas, dos apartaderos"), ("Exits at 30° · bays for 2 × A321", "Salidas a 30° · apartaderos para 2 × A321"), aero_at(.51, .545))

@@ -17,7 +17,7 @@ export function buildLife(L, reg, tier, houses, site) {
   const R = rng(808);
   const out = T.deconstruct.homes;
   const f = (lot) => lot.id / (L.lots.length - 1);
-  const land = (lot, dur = 0.35) => (lot.id === L.hero ? stagger(T.hero.finish, R(), 0.5) : stagger(T.landscaping, f(lot), dur));
+  const land = (lot, dur = 0.35) => (lot.id === L.hero && T.hero ? stagger(T.hero.finish, R(), 0.5) : stagger(T.landscaping, f(lot), dur));
   const lived = (lot) => stagger(T.life, f(lot), 0.3);
   const toW = (h, lx, lz) => [h.pos[0] + lx * Math.cos(h.rotY) + lz * Math.sin(h.rotY), h.pos[1] - lx * Math.sin(h.rotY) + lz * Math.cos(h.rotY)];
   const pools = {};

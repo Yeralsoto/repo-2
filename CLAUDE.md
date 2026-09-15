@@ -388,3 +388,18 @@ full journal entry, consent for the Naples video, and where `unplaced-clouds-tre
 
 **Scroll lengths (her note, 2026-09-14):** The Work's track is 3900svh and The Aerodrome's 1200svh — the same story
 in less scrolling. Every moment is a fraction of the track, so changing a length never breaks a cue.
+
+**Her notes, second round (2026-09-14):**
+- **They do not build the homes.** Their work is the vision and a builder-ready lot; buyers and their builders build
+  the home. Raw land becomes inventory when the lots are ready for the buyer's vision. No copy, teaser or film beat may
+  say or show that she or Scout builds houses.
+- **The Aerodrome starts with the first scroll.** `M()` in aerodrome-3d/main.js now compresses the opening
+  (0–.085 → 0–.012, .085–.30 → .012–.10, .30–.785 → .10–.654, the ending unchanged); `aero_m()` in build.py is its
+  twin and must stay identical (used by `aero_at` and `AERO_NEXT`). On phones the keep-scrolling tab stays bottom
+  right as on The Work; the notes sit above it and the flight note at the top.
+- **Multifamily drawing:** no words on the building. The four readings are HTML (`.blenses`) under the drawing, one
+  per stage.
+- **Journal subdivision drawing:** a parcel on an existing road; the result is lots fronting that road plus a new road
+  with a cul-de-sac so every lot has frontage. Stage names are captions under the drawing (`JCAPS`, one at a time),
+  never a legend inside the SVG.
+- **Burj Khalifa:** no inspirational quote. The sentence under it is about land and vision, set as plain text.
