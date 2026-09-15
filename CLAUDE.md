@@ -204,8 +204,9 @@ interpolated number by number — edit the three states together or not at all.
   A line-drawn paper airplane (`PAPER_PLANE` in build.py) flies one leg per milestone reached —
   milestone-triggered, never tied to scroll pixels; the route continues faintly past Texas and
   dissolves. The same airplane returns at the end of The Aerodrome.
-- **Her subdivision map** (Scout chapter) is published only with the neighbours' names blurred
-  (her choice); never publish `subdivision.PNG` itself.
+- **Her subdivision map is not on the site** (her ask, 2026-09-14: removed, not blurred). The Scout chapter shows
+  the open land in Türkiye; never publish `subdivision.PNG` or any copy of it. Chapter 08 (Drawing) shows a pencil
+  sketch drawn by the scroll (`sketch_svg`), not a photograph.
 - **The Miami story photos are labelled "Miami · USA", no date** — she wants them to show the place
   she worked. A deliberate exception to "always a number".
 - **She wants to read international**, not boxed in by nationality. Framing copy doesn't
@@ -257,10 +258,10 @@ animations adapt to it, never the reverse. Zero accidental text overlap is the r
   `__audit()`: it measures every visible line of text and reports overlaps, text leaving the viewport, text
   under 12px (SVG labels at their on-screen size) and page-level horizontal scroll. Run it at 320, 375, 768 and
   1280 after any layout or copy change; force stages on for drawings (`armed s1…s8`) and open the Mind drawers.
-- **Drawing labels:** `figureKeys()` in motion.js. When a drawing's labels would render under 12px below 1024px wide
-  (under 10px wider; the smallest label decides), the drawing keeps its lines and its labels move into a numbered key beneath it
-  (`.figkey`), in stage order, arriving with their stage, with their Spanish. Re-measured on resize and after
-  `document.fonts.ready`. Applies to `svg.mfig-svg`, `svg.msys` and the technical-sheet figures.
+- **Drawing labels stay on the drawings (her ask, 2026-09-14):** never moved into a list. `labelWaves()` in
+  motion.js: on small screens each label is set to 13px on screen and kept inside the drawing; labels that would touch
+  are grouped into waves that never touch, and the waves arrive one after another as the reader scrolls past the
+  drawing, ending on the fullest. Wider screens keep the drawings as designed. Re-measured on resize, fonts, drawers.
 - **Text-dependent geometry:** the About timeline route is re-laid after fonts load and whenever the strip resizes
   (ResizeObserver). The About scroll cue rests under the photo on narrow screens instead of floating over words.
 - **A photograph never covers words (her rule, 2026-09-14):** prints on The Days may overlap each other, never a
@@ -269,6 +270,13 @@ animations adapt to it, never the reverse. Zero accidental text overlap is the r
   print's paper and caption take the pointer, so an empty print box never sits over another caption.
   `await __occlusion()` in tools/audit.js scrolls the page and reports any text with something painted on top of
   it — run it with the audit. Transitions are frozen and scrolling jumps while it measures.
+- **Nothing makes the reader stop (her ask, 2026-09-14):** animations are driven by the scroll, never by a timer
+  that plays while the reader waits. Staged drawings (`practice()` for every `figure.mfig`: The Practice, the Mind
+  drawers, the Journal) add a stage as the drawing rises through the screen and are complete by its upper part; the
+  Mind closing system, the Home margin airplane and The Days prints (each print's eject → carry → develop mapped onto
+  the scroll, one after another in a row) work the same way. All of them only move forward: what has arrived stays.
+  The one timed moment left is real footage playing once inside its developed print. Already scroll-driven: the Home
+  hero, the Mind opening system, The Work film and The Aerodrome (except the A321, which plays once on arrival).
 - **Drawing labels never crowd:** the audit's `crowded` list flags two labels in one drawing with under 6px between
   them (e.g. the six conditions in Protect the decision now alternate above and below the line).
 - **Safe areas:** `viewport-fit=cover`; `.wrap` and the bar pad with `max(20/30px, env(safe-area-inset-*))`.
@@ -376,3 +384,7 @@ full journal entry, consent for the Naples video, and where `unplaced-clouds-tre
 - Do not replace the placeholder copy with lorem ipsum. Write real sentences or leave hers.
 - Do not animate anything on a timer or a loop. One-shot sequences run on requestAnimationFrame
   clocks, finish, and stay still.
+
+
+**Scroll lengths (her note, 2026-09-14):** The Work's track is 3900svh and The Aerodrome's 1200svh — the same story
+in less scrolling. Every moment is a fraction of the track, so changing a length never breaks a cue.

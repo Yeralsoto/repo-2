@@ -610,45 +610,41 @@ def fig_section():
             + '</svg>')
 
 def fig_tower():
-    # an original study, not any real building: a supertall that rises the way a stem does — a structural grid at
-    # the base, setbacks that curve in like nodes (each with a small leaf), a very fine taper. Drawn in build order:
-    # centreline → foundation → grid and floors → setbacks and facade → taper (her iteration, 2026-09-14)
-    cx = 180
-    tiers = [(600, 470, 118), (470, 362, 94), (362, 272, 72), (272, 198, 52), (198, 138, 35), (138, 94, 21)]
-    def width(y0, y1, hw, nhw, y):
-        t = (y0 - y) / (y0 - y1)
-        return hw + (nhw - hw) * t ** 1.6
-    edges = leaves = floors = mullions = ""
-    for k, (y0, y1, hw) in enumerate(tiers):
-        nhw = tiers[k + 1][2] if k + 1 < len(tiers) else 9
-        for s in (1, -1):
-            edges += (f'<path class="edge" style="--i:{k}" pathLength="1" d="M{cx + s * hw} {y0}C{cx + s * hw} {y1 + (y0 - y1) * 0.35:.0f} '
-                      f'{cx + s * (nhw + (hw - nhw) * 0.25):.0f} {y1 + 6} {cx + s * nhw} {y1}"/>')
-            leaves += f'<path class="leaf" style="--i:{k}" pathLength="1" d="M{cx + s * nhw} {y1}Q{cx + s * (nhw + 14)} {y1 - 2} {cx + s * (nhw + 18)} {y1 - 12}"/>'
-        y = y0 - 9
-        while y > y1 + 2:
-            w = width(y0, y1, hw, nhw, y)
-            floors += f'<path style="--i:{k}" d="M{cx - w:.1f} {y}H{cx + w:.1f}"/>'
-            y -= 9
-        step = 21 if k == 0 else (14 if hw > 40 else 10)
-        m = cx - hw + step
-        while m < cx + hw - 3:
-            d = abs(m - cx)
-            if d <= nhw:
-                top = y1 + 3
-            else:
-                top = y0 - ((hw - d) / (hw - nhw)) ** (1 / 1.6) * (y0 - y1)
-            cls = "grid" if k == 0 else "fac"
-            mullions += f'<path class="{cls}" style="--i:{k}" d="M{m} {y0}V{top:.1f}"/>'
-            m += step
-    piles = "".join(f'<path d="M{x} 600V624"/>' for x in range(72, 300, 36))
-    return ('<svg class="mfig-svg tower-svg" viewBox="0 0 360 640" role="img" '
-            'aria-label="A tall tower drawn in the order it is built: a centreline, the foundation, a structural grid and floors, setbacks that curve in like the nodes of a stem, and a fine taper at the top." '
-            'data-es-aria="Una torre alta dibujada en el orden en que se construye: un eje, la cimentación, una retícula estructural y los pisos, retrocesos que se curvan como los nudos de un tallo, y un remate muy fino arriba.">'
-            f'<path class="cl" pathLength="1" d="M{cx} 634V14"/>'
-            f'<g class="found"><path pathLength="1" d="M40 600H320"/><path pathLength="1" d="M60 624H300"/>{piles}</g>'
-            f'<g class="floors">{floors}</g><g class="mulls">{mullions}</g>{edges}{leaves}'
-            f'<path class="spire" pathLength="1" d="M{cx - 9} 94C{cx - 6} 70 {cx - 2} 44 {cx} 20C{cx + 2} 44 {cx + 6} 70 {cx + 9} 94"/>'
+    # her ask (2026-09-14): the Burj Khalifa — the building she loves — as a line study that rises out of the sand as the
+    # reader scrolls: the dunes first, then the piles and the core, then the setbacks climbing, then the spire.
+    cx, base, top, tip = 180, 604, 214, 30
+    tiers, hw0, hw1 = 16, 100, 15
+    level = lambda i: base - (base - top) * (i / tiers) ** 0.95
+    width = lambda i: hw0 + (hw1 - hw0) * (i / tiers) ** 1.25
+    L = R = hw0
+    lp, rp, wl, wr, floors = [(cx - L, base)], [(cx + R, base)], [], [], ""
+    for i in range(tiers):
+        y0, y1 = level(i), level(i + 1)
+        y = y0 - 11
+        while y > y1 + 3:
+            floors += f'<path style="--i:{i}" d="M{cx - L + 2:.1f} {y:.1f}H{cx + R - 2:.1f}"/>'
+            y -= 11
+        wl.append(f'M{cx - L * 0.45:.1f} {y0:.1f}V{y1:.1f}'); wr.append(f'M{cx + R * 0.45:.1f} {y0:.1f}V{y1:.1f}')
+        lp.append((cx - L, y1)); rp.append((cx + R, y1))
+        # the three wings step back in turn as it climbs: in elevation the left and the right edge take turns
+        if i % 2 == 0: L = width(i + 1)
+        else: R = width(i + 1)
+        lp.append((cx - L, y1)); rp.append((cx + R, y1))
+    s = min(L, R)
+    edge = lambda pts: "M" + "L".join(f"{x:.1f} {y:.1f}" for x, y in pts)
+    rings = "".join(f'<path d="M{cx - s * (1 - k) - 1.5:.1f} {top - (top - tip) * k:.1f}H{cx + s * (1 - k) + 1.5:.1f}"/>' for k in (0.18, 0.36, 0.54))
+    piles = "".join(f'<path d="M{x} {base + 2}V{base + 26}"/>' for x in range(96, 270, 22))
+    return ('<svg class="mfig-svg tower-svg" viewBox="0 0 360 660" role="img" '
+            'aria-label="The Burj Khalifa drawn rising from the sand: dunes, then its foundation and core, then its setbacks climbing, then its spire." '
+            'data-es-aria="El Burj Khalifa dibujado saliendo de la arena: dunas, luego su cimentación y su núcleo, luego sus retrocesos subiendo, luego su aguja.">'
+            '<g class="sand"><path d="M0 612C60 600 118 626 188 610S300 594 360 612"/><path d="M0 634C70 622 150 648 232 630S326 622 360 632"/>'
+            '<path d="M24 652C90 644 150 660 222 648S318 642 350 650"/></g>'
+            f'<g class="found">{piles}<path pathLength="1" d="M70 604H290"/></g>'
+            f'<path class="cl" pathLength="1" d="M{cx} {base}V{tip}"/>'
+            f'<g class="floors">{floors}</g>'
+            f'<g class="mulls"><path class="grid" d="{"".join(wl)}"/><path class="grid" d="{"".join(wr)}"/></g>'
+            f'<path class="edge" style="--i:0" pathLength="1" d="{edge(lp)}"/><path class="edge" style="--i:1" pathLength="1" d="{edge(rp)}"/>'
+            f'<g class="spire-g"><path class="spire" pathLength="1" d="M{cx - s} {top}L{cx - 2} {tip + 60}L{cx} {tip}L{cx + 2} {tip + 60}L{cx + s} {top}"/>{rings}</g>'
             '</svg>')
 
 UW_LENSES = [("Market", "Mercado"), ("Product", "Producto"), ("Land · asset", "Tierra · activo"), ("Cost", "Costo"), ("Operations", "Operación"),
@@ -833,7 +829,9 @@ def practice():
                    [("How I use AI to build it lives in Inside My Mind.", "Cómo uso la IA para construirlo vive en Dentro de mi mente.")])
     )
     tower = (f'<figure class="mfig pfig tower" data-seq="300,1300,1500">{fig_tower()}'
-             + label(("Study · a tower that grows like a plant · 2026", "Estudio · una torre que crece como una planta · 2026"), ("Structure", "Estructura"), reveal=False)
+             + label(("Study · Dubai · 828 m", "Estudio · Dubái · 828 m"), ("Burj Khalifa", "Burj Khalifa"), reveal=False)
+             + tx("p", "Before it was a tower it was sand, and someone who could already see it standing there.",
+                  "Antes de ser una torre fue arena, y alguien que ya podía verla en pie.", cls="tower-line")
              + '</figure>')
     opening = (f'<section class="beat threshold"><div class="wrap"><div class="th"><div>'
                f'{hook("Some things I learn because they are useful.", "Algunas cosas las aprendo porque son útiles.")}'
@@ -1620,7 +1618,7 @@ def fig_pipeline():
 def real_code(want=None):
     # a real fragment of this site, read from js/motion.js at build time — never retyped, never invented
     src = [l.strip() for l in open(os.path.join(ROOT, "js", "motion.js"), encoding="utf-8").read().splitlines()]
-    want = want or ["var T = { lead:", "if (p.dataset.state === 'entering'", "if (p.dataset.state === 'blank'", "if (d < 1)", "if (p.dataset.state === 'developing'"]
+    want = want or ["var T = { eject:", "if (p.dataset.state === 'entering'", "if (p.dataset.state === 'blank'", "if (d < 1)", "var k = clamp01((vh * 0.92 - anchor)"]
     picked = []
     for w in want:
         line = next((l for l in src if l.startswith(w)), None)
@@ -1791,13 +1789,10 @@ STORY_PICS = [
       ("An orange and green trolley under glass towers", "Un tranvía naranja y verde bajo torres de vidrio")),
      ("assets/photos/miami-sculpture-lobby.jpg", ("A lobby", "Un lobby"), ("Miami · USA", "Miami · EE. UU."),
       ("A dark bronze sculpture on stacked stone in front of a glass lobby", "Una escultura de bronce oscuro sobre piedras apiladas frente a un lobby de vidrio"))],
-    # Then land arrived — an early subdivision layout from her Scout Land Group work (her ask; the
-    # neighbours' names are blurred), above the open land in Türkiye she chose for the feeling
-    [("assets/photos/scout-subdivision-layout.jpg", ("An early layout", "Un primer trazado"), ("Scout Land Group · 2025", "Scout Land Group · 2025"),
-      ("A parcel map with an early subdivision layout: one road ending in a circle and lot lines on both sides, the neighbours’ names blurred",
-       "Un mapa predial con un primer trazado de subdivisión: una vía que termina en un círculo y lotes a ambos lados, con los nombres de los vecinos difuminados")),
-     ("assets/photos/turkiye-open-land.jpg", ("Open land", "Tierra abierta"), ("Türkiye · November 2025", "Türkiye · noviembre 2025"),
-      ("Open green land with a fence line and a hill of trees beyond", "Tierra verde abierta con una cerca y una colina de árboles al fondo"))],
+    # Then land arrived: the open land in Türkiye she chose for the feeling. (Her ask, 2026-09-14: the subdivision map is
+    # removed from the site entirely — not blurred.)
+    ("assets/photos/turkiye-open-land.jpg", ("Open land", "Tierra abierta"), ("Türkiye · November 2025", "Türkiye · noviembre 2025"),
+     ("Open green land with a fence line and a hill of trees beyond", "Tierra verde abierta con una cerca y una colina de árboles al fondo")),
     ("assets/photos/valley-dusk.jpg", ("Above the valley", "Sobre el valle"), ("Colombia · August 2026", "Colombia · agosto 2026"),
      ("A valley at dusk from above, the city lights coming on", "Un valle al atardecer desde lo alto, con las luces de la ciudad encendiéndose")),
     ("assets/photos/rome-colosseum-night.jpg", ("Rome", "Roma"), ("Italia · May 2026", "Italia · mayo 2026"),
@@ -1806,14 +1801,34 @@ STORY_PICS = [
      ("A painted and gilded ceiling", "Un techo pintado y dorado")),
     ("assets/photos/istanbul-bosphorus.jpg", ("Istanbul", "Estambul"), ("Türkiye · November 2025", "Türkiye · noviembre 2025"),
      ("Cloud over the Bosphorus, two boats on the water", "Nubes sobre el Bósforo, dos barcos en el agua")),
-    ("assets/photos/orchids-terracotta.jpg", ("Orchids", "Orquídeas"), ("Colombia · September 2026", "Colombia · septiembre 2026"),
-     ("Spotted orchids in a terracotta pot against brick", "Orquídeas moteadas en una maceta de barro contra ladrillo")),
+    # 08 Drawing — her ask (2026-09-14): not a photograph of an orchid; a sketch, drawn as the chapter scrolls
+    {"sketch": True, "name": ("A study", "Un estudio"), "facts": ("One stem · 3 leaves · 2026", "Un tallo · 3 hojas · 2026")},
     ("assets/photos/quindio-colibri.jpg", ("Colibrí", "Colibrí"), ("Quindío · June 2026", "Quindío · junio 2026"),
      ("A hummingbird at an orange feeder", "Un colibrí en un bebedero naranja")),
 ]
 
+def sketch_svg():
+    # a botanical study in pencil line: a faint axis and proportion ticks (look first), the stem that does not bend where
+    # memory expects it to, three leaves that are not symmetrical, then the flower and a little shading
+    return ('<svg class="sketch-svg" viewBox="0 0 240 300" role="img" aria-label="A pencil study of a stem: a faint axis, the bending stem, three uneven leaves, then the flower and a little shading." '
+            'data-es-aria="Un estudio a lápiz de un tallo: un eje tenue, el tallo que se curva, tres hojas desiguales, luego la flor y un poco de sombra.">'
+            '<g class="st1 guide-l"><path pathLength="1" d="M120 292V18"/><path pathLength="1" d="M108 230H132M108 160H132M108 96H132"/></g>'
+            '<g class="st1"><path pathLength="1" d="M120 290C118 240 128 200 116 150C108 118 124 90 132 60"/></g>'
+            '<g class="st2"><path pathLength="1" d="M118 232C92 224 72 208 62 186C86 188 106 204 118 232"/>'
+            '<path pathLength="1" d="M122 188C146 178 168 162 182 138C156 144 136 162 122 188"/>'
+            '<path pathLength="1" d="M114 134C96 126 84 112 80 94C98 98 110 112 114 134"/></g>'
+            '<g class="st3"><path pathLength="1" d="M132 60C120 40 124 20 140 14C146 30 142 48 132 60"/>'
+            '<path pathLength="1" d="M132 60C150 50 170 52 180 64C166 72 148 72 132 60"/>'
+            '<path pathLength="1" d="M132 60C116 58 100 64 94 78C110 80 124 74 132 60"/>'
+            '<path pathLength="1" d="M132 60C136 74 132 86 124 92"/>'
+            '<path class="shade" pathLength="1" d="M72 196L80 190M78 202L88 195M150 160L158 152M156 166L166 158M88 108L94 102"/></g>'
+            '</svg>')
+
 def story_pic(i, R):
     entry = STORY_PICS[i]
+    if isinstance(entry, dict):   # a drawing instead of a photograph, driven by the scroll like every staged drawing
+        return (f'<div class="ch-fig ch-sketch" data-reveal><figure class="ch-one mfig pfig sketch" data-seq="0,0,0">{sketch_svg()}'
+                f'{label(entry["facts"], entry["name"], reveal=False)}</figure></div>')
     pics = entry if isinstance(entry, list) else [entry]
     figs = "".join(f'<figure class="ch-one">{frame("r45", img(R + src, alt))}{label(facts, name, reveal=False)}</figure>'
                    for src, name, facts, alt in pics)

@@ -121,7 +121,8 @@
    Verde Hondo on Papel 11.56:1. A soft Papel wash sits behind the drawings while a diagram is on (.ftl-wash). */
 .ftl-story text{font-family:"Jost",system-ui,sans-serif;font-size:14px;font-weight:400;letter-spacing:.16em;text-transform:uppercase;fill:#16352A;stroke:none;filter:url(#ftl-chip);}
 .ftl-story .ftl-wash{fill:#ECE5D7;stroke:none;pointer-events:none;}
-@media (max-width:720px){ .ftl-story text{font-size:12px;} .ftl-story text.dia{font-size:13px;} .ftl-story text.small{font-size:11px;} }
+/* narrow: never under 12px — where words would crowd, story.js shows them one at a time instead of shrinking them */
+@media (max-width:720px){ .ftl-story text{font-size:12px;} .ftl-story text.dia{font-size:13px;} .ftl-story text.small{font-size:12px;} }
 
 /* ---- After ---- */
 .ftl-after{background:var(--verde);color:var(--on-verde);padding:var(--s-96) 7vw;display:flex;justify-content:space-between;align-items:baseline;gap:var(--s-24);}

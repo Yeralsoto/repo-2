@@ -2,11 +2,40 @@
 // cubics (no overshoot, so the camera never dips through the ground between two keys).
 // Opening aerial ~38° → survey rising → near-plan → down to one homesite → wide aerial → back to
 // a framing that echoes the opening, so the reader recognises the same land.
-import { SITE_CENTER } from './world.js';
-import { WORK, onStory } from './config.js';
+import * as THREE from 'three';
+import { SITE_CENTER, GRADE } from './world.js';
+import { WORK, onStory, T } from './config.js';
+import { PUBLIC } from './layout.js';
+import { COMP_AT } from './story.js';
 
 const D2R = Math.PI / 180;
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const win4 = (w, p) => smooth(w[0], w[1], p) * (1 - smooth(w[2], w[3], p));
+const lerp = (a, b, t) => a + (b - a) * t;
+
+// Phone portrait on The Work: the site's bar covers the top ~64px and the page's words the lower ~40%, so
+// the land (and whatever is drawn on it) is fitted into the band between — 72px from the top to 58% of the
+// height, 12px from the sides. The picture is only scaled and moved in two dimensions (zoom and a view
+// offset), so the perspective, and every word anchored to the land, stays exactly as authored.
+const v3 = new THREE.Vector3();
+function fitOf(camera, pts, W, H, top) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const q of pts) {
+    v3.set(q[0], GRADE, q[1]).project(camera);
+    if (v3.z > 1 || v3.z < -1) return null;
+    const x = (v3.x + 1) * 0.5 * W, y = (1 - v3.y) * 0.5 * H;
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+  }
+  const m = 8, L = 12 + m, R = W - 12 - m, Tp = top + m, B = H * 0.58 - m;
+  const s = Math.min(1, (R - L) / Math.max(1, x1 - x0), (B - Tp) / Math.max(1, y1 - y0));
+  return { s, box: [x0, y0, x1, y1], band: [L, Tp, R, B] };
+}
+// the smallest move that brings a scaled box inside the band
+function shiftOf(f, s, W, H) {
+  const [x0, y0, x1, y1] = f.box, [L, Tp, R, B] = f.band;
+  const X0 = W / 2 + (x0 - W / 2) * s, X1 = W / 2 + (x1 - W / 2) * s, Y0 = H / 2 + (y0 - H / 2) * s, Y1 = H / 2 + (y1 - H / 2) * s;
+  return [Math.max(0, L - X0) + Math.min(0, R - X1), Math.max(0, Tp - Y0) + Math.min(0, B - Y1)];
+}
 
 function monotone(xs, ys) {
   const n = xs.length, d = [], m = new Array(n);
@@ -124,7 +153,38 @@ export function makeCamera(L, houses) {
   const ch = [1, 2, 3, 4, 5].map((c) => monotone(xs, keys.map((k) => k[c])));
   const logD = monotone(xs, keys.map((k) => Math.log(k[6])));
 
-  function update(camera, p, aspect) {
+  // what must stay whole on a phone: the parcel with the frontage and neighbours in front of it, or, while
+  // the comps are read, every comp and the subject
+  const LAND = [...L.PARCEL, [-110, PUBLIC.z(-110) + 30], [60, PUBLIC.z(60) + 30]];
+  const COMPS = [...COMP_AT, SITE_CENTER];
+  const S = WORK ? T.story : null;
+  // the approach to the one home built in the open is a close-up: the fit lets go before it and returns after
+  const HERO = [onStory(0.712), onStory(0.722), onStory(0.768), onStory(0.780)];
+  // while a milestone row or the scenario words ride the top of the band, the land keeps that strip clear
+  const ROOM = S ? [S.rulesNotes[0], S.rulesNotes[0] + 0.006, S.planOut[0], S.planOut[1]] : null;
+
+  function portraitFit(camera, p, aspect, H) {
+    camera.zoom = 1;
+    camera.clearViewOffset();
+    camera.updateProjectionMatrix();
+    if (!WORK || !H || aspect >= 1) return;
+    const w = (1 - win4(HERO, p)) * (1 - smooth(0.722, 0.73, p));
+    if (w < 0.001) return;
+    camera.updateMatrixWorld();
+    const W = aspect * H;
+    const top = 72 + 72 * Math.max(win4(ROOM, p), win4(S.civil, p));
+    const kc = win4([S.comps[0] - 0.006, S.comps[0], S.comps[3], S.comps[3] + 0.006], p);
+    const a = fitOf(camera, LAND, W, H, top), b = kc > 0.001 ? fitOf(camera, COMPS, W, H, 72) : a;
+    if (!a || !b) return;
+    const s = lerp(1, lerp(a.s, b.s, kc), w);
+    const da = shiftOf(a, s, W, H), db = shiftOf(b, s, W, H);
+    const dx = lerp(da[0], db[0], kc) * w, dy = lerp(da[1], db[1], kc) * w;
+    camera.zoom = s;
+    camera.setViewOffset(W, H, -dx, -dy, W, H);
+    camera.updateProjectionMatrix();
+  }
+
+  function update(camera, p, aspect, H) {
     const tx = ch[0](p), tz = ch[1](p), ty = ch[2](p), az = ch[3](p) * D2R, el = ch[4](p) * D2R;
     let dist = Math.exp(logD(p));
     // narrow screens: wide shots step back so the whole community stays in frame; close-ups stay close
@@ -143,7 +203,7 @@ export function makeCamera(L, houses) {
     camera.lookAt(lx, ty, lz);
     camera.near = Math.max(0.5, dist * 0.02);
     camera.far = 12000;
-    camera.updateProjectionMatrix();
+    portraitFit(camera, p, aspect, H);
     return { x: tx, z: tz, dist, radius: Math.min(340, Math.max(55, dist * 0.62)) };
   }
   return { update };

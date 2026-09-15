@@ -8,6 +8,9 @@
   var clamp01 = function (v) { return v < 0 ? 0 : v > 1 ? 1 : v; };
   var each = function (sel, fn, scope) { [].forEach.call((scope || document).querySelectorAll(sel), fn); };
   var onLang = [];   // modules that own a label register here
+  // review only (?check): every scroll-driven update, callable at once — preview panes throttle animation frames
+  var ticks = [];
+  if (/[?&]check\b/.test(location.search)) window.__ticks = function () { ticks.forEach(function (t) { t(); }); };
 
   /* ================= REVEAL ================= */
   var watch = document.querySelectorAll('[data-reveal],.draw,.horizon,.rise,.portrait');
@@ -185,8 +188,9 @@
     }
   })();
 
-  /* ABOUT ME (Home) — a margin note comes alive once: when the aerodrome lines arrive, a small paper
-     airplane enters along one short curve, crosses above them and settles. Never a second aerodrome. */
+  /* ABOUT ME (Home) — a margin note comes alive: as the aerodrome lines scroll up, a small paper airplane
+     draws its short curve and crosses above them, settling by the time they are read. Driven by the scroll
+     (her ask: nothing makes the reader stop), never backwards. Never a second aerodrome. */
   (function () {
     var note = document.querySelector('.mplane');
     if (!note) return;
@@ -199,21 +203,22 @@
     if (reduce || !('IntersectionObserver' in window)) { route.style.strokeDashoffset = '0'; at(1, 0); note.classList.add('done'); return; }
     note.classList.add('armed');
     at(0, 1);
-    var io = new IntersectionObserver(function (rows) {
-      if (!rows[0].isIntersecting) return;
-      io.disconnect();
-      var t0 = performance.now(), easeOut = function (x) { return 1 - Math.pow(1 - x, 3); };
-      (function f(now) {
-        var t = now - t0, draw = clamp01(t / 420), k = clamp01((t - 300) / 1100);
-        route.style.strokeDashoffset = (1 - easeOut(draw)).toFixed(3);
-        var e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
-        craft.style.opacity = Math.min(1, k * 6).toFixed(2);
-        at(e, 1 - easeOut(clamp01((t - 1400) / 260)));
-        if (t < 1700) { requestAnimationFrame(f); return; }
-        note.classList.add('done');
-      })(t0);
-    }, { threshold: 0.6 });
-    io.observe(note);
+    var reached = 0, queued = false, easeOut = function (x) { return 1 - Math.pow(1 - x, 3); };
+    function tick() {
+      queued = false;
+      var r = note.getBoundingClientRect(), vh = window.innerHeight;
+      var k = clamp01((vh * 0.92 - r.top) / (vh * 0.45));   // from entering the screen to the upper half of it
+      if (k <= reached) return;
+      reached = k;
+      route.style.strokeDashoffset = (1 - easeOut(clamp01(k / 0.45))).toFixed(3);
+      var m = clamp01((k - 0.2) / 0.75), e = m < 0.5 ? 4 * m * m * m : 1 - Math.pow(-2 * m + 2, 3) / 2;
+      craft.style.opacity = Math.min(1, m * 6).toFixed(2);
+      at(e, 1 - easeOut(clamp01((k - 0.9) / 0.1)));
+      if (k >= 1) note.classList.add('done');
+    }
+    window.addEventListener('scroll', function () { if (!queued) { queued = true; requestAnimationFrame(tick); } }, { passive: true });
+    ticks.push(tick);
+    tick();
   })();
 
   /* ABOUT — a quiet scroll cue under the first composition: it appears once the page has settled, its
@@ -329,13 +334,13 @@
   each('.lang-b', function (b) { b.addEventListener('click', function () { applyLang(b.dataset.lang); }); });
 
   /* ================= THE DAYS — prints =================
-     Every print is a small state machine with one timing table:
+     Every print is a small state machine with one table of stages:
        idle → entering → blank → developing → developed → (playing → settling) → still
-     Her ask (2026-09): like a Polaroid. The set's words arrive first, and a line-drawn instant camera
-     sits above the prints. Each print is pushed out of its slot, blank; it is carried to its place with
-     a small swing, and develops quickly on the way — dark green chemistry lifting into the photograph
-     in under a second. It holds. Only a print with real footage then moves, once, inside the still
-     paper, and settles on its last frame. Then the camera gives the next print.
+     Her ask (2026-09): like a Polaroid. A line-drawn instant camera sits above the prints. Each print is pushed
+     out of its slot, blank; it is carried to its place with a small swing, and develops on the way — dark green
+     chemistry lifting into the photograph. Her ask (2026-09-14): nothing makes the reader stop, so the arrival is
+     driven by the scroll — one print after another as the set rises, finished while the reader keeps going, never
+     backwards. Only a print with real footage then moves, once, inside the still paper, and settles on its last frame.
      Only one moving memory plays at a time; footage loads near the screen and pauses off it.
      Reduced motion: every print already developed; no camera; footage only in the viewer, on request. */
   function prints() {
@@ -344,31 +349,33 @@
     var sets = [].slice.call(room.querySelectorAll('[data-set]'));
     var all = [].slice.call(room.querySelectorAll('.print'));
     var viewer = room.querySelector('.viewer');
-    var T = { lead: 480, eject: 820, pause: 140, move: 880, develop: 900, hold: 520, settle: 380 };   // ms
+    var T = { eject: 820, pause: 140, move: 880, develop: 900, settle: 380 };   // the arrival's own units; the scroll moves through them
     var sm = function (a, b, x) { var t = clamp01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
     var easeInOut = function (x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
     var playing = null;
 
     function state(p, s) { p.dataset.state = s; }
     // her rule: a photograph never covers words. Prints may overlap each other; a caption that would sit under another
-    // print is moved clear of it — or, when that print comes after it, the print moves down. Measured from the real
-    // layout, at rest, and again on resize, after fonts load, when a language changes and when a set has finished.
+    // print is moved clear of it — or, when that print comes after it, the print moves down. Measured on the resting
+    // layout (offsets, widened for each print's tilt), never on screen positions, so a print still flying out of the
+    // camera can't mislead it. Again on resize, after fonts load, when a language changes and when a drawer opens.
     function clearWords(box) {
+      if (box.offsetParent === null) return;   // inside a closed drawer: measured when it opens
       var ps = [].slice.call(box.querySelectorAll('.print'));
-      var moving = ps.some(function (p) { return /^(entering|blank|developing)$/.test(p.dataset.state || ''); });
-      if (moving) return;
       ps.forEach(function (p) { p.style.marginTop = ''; p.querySelector('figcaption').style.marginTop = ''; });
-      var rel = function (el) {
-        var b = box.getBoundingClientRect(), r = el.getBoundingClientRect();
-        return { x0: r.left - b.left, x1: r.right - b.left, y0: r.top - b.top, y1: r.bottom - b.top };
+      var rest = function (el, fig) {
+        var x = fig.offsetLeft + el.offsetLeft, y = fig.offsetTop + el.offsetTop;
+        var tilt = Math.abs(parseFloat(getComputedStyle(fig).getPropertyValue('--rot')) || 0) * Math.PI / 180;
+        var grow = (el.offsetWidth * Math.sin(tilt)) / 2 + 4;
+        return { x0: x - grow, x1: x + el.offsetWidth + grow, y0: y - grow, y1: y + el.offsetHeight + grow };
       };
-      for (var pass = 0; pass < 6; pass++) {
+      for (var pass = 0; pass < 8; pass++) {
         var moved = false;
         ps.forEach(function (p) {
           var cap = p.querySelector('figcaption');
           ps.forEach(function (q) {
             if (q === p) return;
-            var c = rel(cap), r = rel(q.querySelector('.paper')), pad = 16;
+            var c = rest(cap, p), r = rest(q.querySelector('.paper'), q), pad = 16;
             if (r.x0 < c.x1 + pad && r.x1 > c.x0 - pad && r.y0 < c.y1 + pad && r.y1 > c.y0 - pad) {
               if (r.y0 > c.y0) q.style.marginTop = (parseFloat(getComputedStyle(q).marginTop) + (c.y1 + pad - r.y0)).toFixed(1) + 'px';
               else cap.style.marginTop = (parseFloat(getComputedStyle(cap).marginTop) + (r.y1 + pad - c.y0)).toFixed(1) + 'px';
@@ -383,6 +390,7 @@
     clearAll();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(clearAll);
     window.addEventListener('resize', clearAll);
+    document.addEventListener('toggle', clearAll, true);
     onLang.push(clearAll);
     // where this print rests, and where it leaves the camera — both in the set's own coordinates
     function geo(p) {
@@ -447,37 +455,50 @@
       if (go && go.catch) go.catch(finish);   // if the browser refuses to play, it simply stays a photograph
     }
 
-    function run(p, delay, done) {
-      var img = p.querySelector('.dev'), v = p.querySelector('video.memory'), paper = p.querySelector('.paper');
-      var start = function () {
-        var t0 = performance.now() + delay, dev0 = T.eject + T.pause + T.move * 0.45;   // it develops while it is carried
-        (function frame(now) {
-          var t = now - t0;
-          if (t < 0) { requestAnimationFrame(frame); return; }
-          if (p.dataset.state === 'idle') { p._geo = geo(p); paper.style.transition = 'none'; state(p, 'entering'); }
-          var d = clamp01((t - dev0) / T.develop);
-          place(p, t); develop(p, d);
-          if (p.dataset.state === 'entering' && t >= T.eject) state(p, 'blank');
-          if (p.dataset.state === 'blank' && d > 0) state(p, 'developing');
-          if (d < 1) { requestAnimationFrame(frame); return; }
-          if (p.dataset.state === 'developing') state(p, 'developed');
-          if (t < dev0 + T.develop + T.hold) { requestAnimationFrame(frame); return; }
-          settle(p);
-          if (v) { play(p, v, done); return; }
-          state(p, 'still'); if (done) done();
-        })(performance.now());
-      };
-      // wait for the photograph itself, so it never develops out of an empty frame
-      if (img.decode) img.decode().then(start, start); else start();
+    // one print at t along its arrival — t comes from the scroll, so the reader never waits for it
+    var DEV0 = T.eject + T.pause + T.move * 0.45, TOTAL = DEV0 + T.develop;   // it develops while it is carried
+    function frameAt(p, t) {
+      var paper = p.querySelector('.paper');
+      if (!p._geo) {
+        p._geo = geo(p); paper.style.transition = 'none';
+        var img = p.querySelector('.dev'); if (img.decode) img.decode().catch(function () {});
+      }
+      var d = clamp01((t - DEV0) / T.develop);
+      place(p, t); develop(p, d);
+      if (/^(playing|settling|still)$/.test(p.dataset.state || '')) return;
+      var s = t <= 0 ? 'idle' : t < T.eject ? 'entering' : d <= 0 ? 'blank' : d < 1 ? 'developing' : 'developed';
+      if (p.dataset.state === 'entering' && t >= T.eject) state(p, 'blank');
+      if (p.dataset.state === 'blank' && d > 0) state(p, 'developing');
+      if (d < 1) { if (p.dataset.state !== s) state(p, s); return; }
+      if (p.dataset.state === 'developing' || p.dataset.state !== 'developed') state(p, 'developed');
+      if (t < TOTAL) return;
+      settle(p);
+      var v = p.querySelector('video.memory');
+      if (v && !p.classList.contains('played')) { play(p, v, null); return; }
+      state(p, 'still');
     }
-    function runSet(el) {
-      var list = [].slice.call(el.querySelectorAll('.print')), i = 0;
-      el.classList.add('live');
-      (function next() {
-        if (i < list.length) run(list[i++], i === 1 ? T.lead : 160, next);
-        else { el.classList.add('shot'); clearWords(el.querySelector('.dprints')); }   // the last print is out: the camera leaves
-      })();
+    // the scroll drives every set: prints in a row leave the camera one after another as the set rises; a phone's
+    // stack follows each print's own place on the page. Finished by the upper part of the screen, never backwards.
+    var queued = false;
+    function tick() {
+      queued = false;
+      var vh = window.innerHeight;
+      sets.forEach(function (set) {
+        if (set._done) return;
+        var box = set.querySelector('.dprints');
+        if (!box || box.offsetParent === null) return;   // a closed drawer
+        var ps = [].slice.call(box.querySelectorAll('.print')), top = box.getBoundingClientRect().top, all = true;
+        ps.forEach(function (p, i) {
+          var anchor = Math.max(top + i * vh * 0.16, top + p.offsetTop + p.querySelector('.paper').offsetTop);
+          var k = clamp01((vh * 0.92 - anchor) / (vh * 0.38));
+          if (k > (p._k || 0)) { p._k = k; frameAt(p, k * TOTAL); }
+          if ((p._k || 0) < 1) all = false;
+        });
+        if ((ps[0]._k || 0) > 0) set.classList.add('live');
+        if (all) { set.classList.add('shot'); set._done = true; }   // the last print is out: the camera leaves
+      });
     }
+    function queueTick() { if (!queued) { queued = true; requestAnimationFrame(tick); } }
 
     // the viewer: the photograph alone; footage gets its own controls here
     function open(p) {
@@ -519,14 +540,15 @@
       if (paper && viewer) open(paper.closest('.print'));
     });
 
-    if (reduce || !('IntersectionObserver' in window)) { all.forEach(rest); return; }
+    if (reduce) { all.forEach(rest); return; }
     room.classList.add('armed');
     all.forEach(function (p) { develop(p, 0); });
-
-    var arrive = new IntersectionObserver(function (rows) {
-      rows.forEach(function (r) { if (r.isIntersecting) { arrive.unobserve(r.target); runSet(r.target); } });
-    }, { rootMargin: '0px 0px -20% 0px', threshold: 0.25 });
-    sets.forEach(function (s) { arrive.observe(s); });
+    clearAll();   // the camera's room above the prints has just been added
+    window.addEventListener('scroll', queueTick, { passive: true });
+    window.addEventListener('resize', function () { all.forEach(function (p) { if ((p._k || 0) < 1) p._geo = null; }); queueTick(); });
+    document.addEventListener('toggle', queueTick, true);
+    ticks.push(tick);
+    tick();
 
     // footage: loaded only near the screen, paused whenever it leaves it
     [].forEach.call(room.querySelectorAll('video.memory'), function (v) {
@@ -544,9 +566,9 @@
 
   /* ================= INSIDE MY MIND =================
      The opening system comes apart into its parts as the reader scrolls — its shape follows the scroll,
-     its names arrive as the parts separate. Each drawer's drawing plays once, the first time its drawer
-     opens and the drawing is on screen: the words first, then the drawing, stage by stage (armed → s1 →
-     s2 → s3), and then it holds. The closing system resolves once when it arrives, and goes quiet.
+     its names arrive as the parts separate. A drawer's drawing is driven by the scroll once its drawer is
+     open (practice() below, stage by stage, never backwards). The closing system resolves as it scrolls
+     into view — its names waiting until the parts have separated — and goes quiet.
      Reduced motion: every drawing at its end. */
   function mind() {
     var opening = document.querySelector('.mind-open');
@@ -572,11 +594,8 @@
         });
       };
     }
-    function after(ms, fn) { var t0 = performance.now(); (function f(now) { if (now - t0 < ms) { requestAnimationFrame(f); return; } fn(); })(t0); }
-    function tween(ms, fn, done) {
-      var t0 = performance.now();
-      (function f(now) { var k = clamp01((now - t0) / ms); fn(k * k * (3 - 2 * k)); if (k < 1) requestAnimationFrame(f); else if (done) done(); })(t0);
-    }
+    // a drawer drawing that is a graph relaxes during its last stage (driven in practice())
+    [].forEach.call(document.querySelectorAll('figure.mfig .mfig-graph'), function (g) { var f = g.closest('figure'); f._graph = graph(g); f._graph(0); });
     var sys = opening.querySelector('.msys'), drawSys = graph(sys), track = opening.querySelector('.msys-track');
     var close = document.querySelector('.mind-close .msys'), drawClose = close && graph(close);
     var figs = [].slice.call(document.querySelectorAll('.mfig'));
@@ -597,122 +616,151 @@
       sys.style.setProperty('--k', sm(0.6, 1, k).toFixed(3));
     }
     window.addEventListener('scroll', function () { if (!queued) { queued = true; requestAnimationFrame(onScroll); } }, { passive: true });
+    ticks.push(onScroll);
     onScroll();
 
     if (drawClose) {
       drawClose(0);
       close.style.setProperty('--k', '0');   // its names wait until the parts have separated, so they never sit on each other
-      var seen = new IntersectionObserver(function (rows) {
-        if (!rows[0].isIntersecting) return;
-        seen.disconnect();
-        tween(2400, function (k) { drawClose(k); close.style.setProperty('--k', sm(0.6, 1, k).toFixed(3)); }, function () { close.classList.add('quiet'); });
-      }, { threshold: 0.45 });
-      seen.observe(close);
+      var closed = 0, cq = false;
+      var closeTick = function () {
+        cq = false;
+        var r = close.getBoundingClientRect(), vh = window.innerHeight;
+        var k = clamp01((vh * 0.95 - r.top) / (vh * 0.6));   // resolved by the time it reaches the upper third
+        if (k <= closed) return;
+        closed = k;
+        var e = k * k * (3 - 2 * k);
+        drawClose(e);
+        close.style.setProperty('--k', sm(0.6, 1, e).toFixed(3));
+        if (k >= 1) close.classList.add('quiet');
+      };
+      window.addEventListener('scroll', function () { if (!cq) { cq = true; requestAnimationFrame(closeTick); } }, { passive: true });
+      ticks.push(closeTick);
+      closeTick();
     }
-
-    function play(fig) {
-      var steps = (fig.dataset.seq || '650,1400,1400').split(',').map(Number);
-      var g = fig.querySelector('.mfig-graph'), draw = g && graph(g);
-      if (draw) draw(0);
-      fig.classList.add('armed');
-      var io = new IntersectionObserver(function (rows) {
-        if (!rows[0].isIntersecting) return;
-        io.disconnect();
-        after(steps[0], function () {
-          fig.classList.add('s1');
-          after(steps[1], function () {
-            fig.classList.add('s2');
-            after(steps[2], function () {
-              fig.classList.add('s3');
-              if (draw) tween(1400, draw);
-            });
-          });
-        });
-      }, { threshold: 0.45 });
-      io.observe(fig);
-    }
-    [].forEach.call(document.querySelectorAll('.mdrawer'), function (d) {
-      d.addEventListener('toggle', function () {
-        if (!d.open || d.dataset.played) return;
-        d.dataset.played = '1';
-        [].forEach.call(d.querySelectorAll('.mfig'), play);
-      });
-    });
   }
   mind();
 
-  /* ================= THE PRACTICE =================
-     Each drawing waits until its words have been read and it is on screen, then plays once
-     (armed → s1 → s2 → s3) on a requestAnimationFrame clock, and holds. Reduced motion: at its end. */
+  /* ================= STAGED DRAWINGS (The Practice, Inside My Mind, The Journal) =================
+     Her ask (2026-09-14): nothing makes the reader stop and wait. A drawing is driven by the scroll: it begins as
+     it enters the screen, each stage (s1 … sN, as many as its data-seq lists) arrives as the reader keeps going,
+     and it is complete by the time it reaches the upper part of the screen. It never runs backwards — a stage
+     that has arrived stays — and a graph relaxes through the last stage. Reduced motion: every drawing at its end. */
   function practice() {
-    var figs = [].slice.call(document.querySelectorAll('.pfig'));
+    var figs = [].slice.call(document.querySelectorAll('figure.mfig'));
     if (!figs.length) return;
-    if (reduce || !('IntersectionObserver' in window)) {
-      figs.forEach(function (f) { var n = (f.dataset.seq || '0,0,0').split(',').length; f.classList.add('armed'); for (var k = 1; k <= n; k++) f.classList.add('s' + k); });
+    var stagesOf = function (f) { return (f.dataset.seq || '0,0,0').split(',').length; };
+    if (reduce) {
+      figs.forEach(function (f) { f.classList.add('armed'); for (var k = 1; k <= stagesOf(f); k++) f.classList.add('s' + k); if (f._graph) f._graph(1); });
       return;
     }
-    function after(ms, fn) { var t0 = performance.now(); (function f(now) { if (now - t0 < ms) { requestAnimationFrame(f); return; } fn(); })(t0); }
-    figs.forEach(function (fig) {
-      var steps = (fig.dataset.seq || '700,1300,1300').split(',').map(Number);   // one pause per stage: s1, s2, s3 … (a subdivision has eight)
-      fig.classList.add('armed');
-      var io = new IntersectionObserver(function (rows) {
-        if (!rows[0].isIntersecting) return;
-        io.disconnect();
-        (function next(k) { if (k < steps.length) after(steps[k], function () { fig.classList.add('s' + (k + 1)); next(k + 1); }); })(0);
-      }, { threshold: 0.4 });
-      io.observe(fig);
-    });
+    figs.forEach(function (f) { f.classList.add('armed'); f._k = 0; });
+    var queued = false;
+    function tick() {
+      queued = false;
+      var vh = window.innerHeight;
+      figs.forEach(function (f) {
+        if (f._k >= 1) return;
+        var r = f.getBoundingClientRect();
+        if (!r.height) return;   // inside a closed drawer
+        // below the fold: from entering the screen to its upper part. Already on screen at the top of the page (the
+        // Burj Khalifa rising from the sand): the reader's own first scroll builds it.
+        var pageTop = r.top + window.scrollY, startY = Math.max(0, pageTop - vh * 0.95);
+        var span = startY > 0 ? vh * 0.6 : vh * 0.5;
+        var k = clamp01((window.scrollY - startY) / span);
+        if (k <= f._k) return;
+        f._k = k;
+        var n = stagesOf(f), s = Math.min(n, Math.ceil(k * n));
+        for (var i = 1; i <= s; i++) f.classList.add('s' + i);
+        if (f._graph) f._graph(clamp01(k * n - (n - 1)));
+      });
+    }
+    function queue() { if (!queued) { queued = true; requestAnimationFrame(tick); } }
+    window.addEventListener('scroll', queue, { passive: true });
+    window.addEventListener('resize', queue);
+    document.addEventListener('toggle', queue, true);   // a drawer has opened
+    ticks.push(tick);
+    tick();
   }
   practice();
 
-  /* ================= DRAWING LABELS ON NARROW SCREENS =================
-     Her typography rule: text is never shrunk to fit a drawing. A line drawing scales with its column, so on a
-     phone its labels can fall under 12px or run into each other. When that would happen the drawing keeps its
-     lines and its labels move into a key beneath it — in the drawing's own order, arriving with the stage they
-     belong to. Measured, never guessed: re-checked whenever a drawing's width changes and once fonts load. */
-  function figureKeys() {
+  /* ================= DRAWING LABELS ON SMALL SCREENS =================
+     Her ask (2026-09-14): the names belong on the drawings — never moved into a list. When a drawing is too narrow for
+     its labels, each label is set large enough to read (13px on screen) and kept inside the drawing; labels that would
+     touch take turns. They are grouped into waves of names that never touch each other, and as the reader scrolls past
+     the drawing the waves arrive one after another — one set of names leaves as the next appears — ending on the
+     fullest wave. Wider screens keep the drawings exactly as designed. Re-measured on resize, after fonts load and when
+     a drawer opens; the waves themselves follow the scroll. */
+  function labelWaves() {
     var svgs = [].slice.call(document.querySelectorAll('svg.mfig-svg, svg.msys, figure.sfig svg'));
-    if (!svgs.length) return;
-    var LABEL = 'text.gl, text.pn, text.pv';
     var items = svgs.map(function (svg) {
-      var labels = [].slice.call(svg.querySelectorAll(LABEL));
-      if (!labels.length || !svg.viewBox || !svg.viewBox.baseVal || !svg.viewBox.baseVal.width) return null;
-      var key = document.createElement('ol'), seen = {};
-      key.className = 'figkey'; key.hidden = true; key.setAttribute('aria-hidden', 'true');
-      labels.forEach(function (t) {
-        var words = (t.textContent || '').trim();
-        if (words.length < 3 || seen[words]) return;
-        seen[words] = 1;
-        var li = document.createElement('li'), g = t.closest('g[class]'), m = null;
-        for (var e = t.parentNode; e && e !== svg && !m; e = e.parentNode) m = (e.getAttribute && (e.getAttribute('class') || '').match(/(?:^|\s)st(\d)(?:\s|$)/));
-        if (m) li.setAttribute('data-st', m[1]);
-        li.textContent = words;
-        ['es', 'esHtml'].forEach(function (k) { if (t.dataset[k]) li.dataset[k] = t.dataset[k]; });
-        key.appendChild(li);
-      });
-      // the key reads in the drawing's own order: its stages first, then anything unstaged, as drawn
-      [].slice.call(key.children).map(function (li, i) { return { li: li, st: +(li.getAttribute('data-st') || 99), i: i }; })
-        .sort(function (x, y) { return x.st - y.st || x.i - y.i; }).forEach(function (o) { key.appendChild(o.li); });
-      svg.parentNode.insertBefore(key, svg.nextSibling);
-      return { svg: svg, key: key, labels: labels };
+      var labels = [].slice.call(svg.querySelectorAll('text.gl, text.pn, text.pv'));
+      return labels.length && svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width ? { svg: svg, labels: labels, order: null, cur: -1 } : null;
     }).filter(Boolean);
-    function measure() {
-      items.forEach(function (it) {
-        var w = it.svg.getBoundingClientRect().width, vb = it.svg.viewBox.baseVal.width;
-        var fs = Math.min.apply(null, it.labels.map(function (t) { return parseFloat(getComputedStyle(t).fontSize) || 99; }));   // the smallest label decides
-        var px = fs * (w / vb);
-        // phones and tablets: never under 12px. Wider screens keep the drawings as designed unless a label would fall under 9px
-        var keyed = w > 0 && px < (window.innerWidth < 1024 ? 12 : 10);   // tablets in portrait count as small screens
-        it.svg.classList.toggle('keyed', keyed);
-        it.key.hidden = !keyed;
+    if (!items.length) return;
+    function place(it) {
+      it.labels.forEach(function (t) { t.style.fontSize = ''; t.style.letterSpacing = ''; t.removeAttribute('transform'); t.classList.remove('wave-off'); });
+      it.order = null; it.cur = -1; it.svg.classList.remove('waved');
+      var w = it.svg.getBoundingClientRect().width, vb = it.svg.viewBox.baseVal;
+      if (!w) return;   // inside a closed drawer
+      var scale = w / vb.width;
+      var fs = Math.min.apply(null, it.labels.map(function (t) { return parseFloat(getComputedStyle(t).fontSize) || 99; }));
+      if (fs * scale >= (window.innerWidth < 1024 ? 12 : 10)) return;   // readable as designed
+      var size = 13 / scale, pad = 8 / scale, gap = 10 / scale;
+      it.labels.forEach(function (t) { t.style.fontSize = size.toFixed(1) + 'px'; t.style.letterSpacing = '0.1em'; });
+      // each label's box where the drawing ends up: graphs at their resolved positions, groups at their translations
+      var boxes = it.labels.map(function (t) {
+        var bb = t.getBBox(), dx = 0, dy = 0;
+        for (var e = t.parentNode; e && e !== it.svg; e = e.parentNode) {
+          if (e.classList && e.classList.contains('gnode')) { dx += +e.dataset.bx || 0; dy += +e.dataset.by || 0; continue; }
+          var m = e.getAttribute && (e.getAttribute('transform') || '').match(/translate\(\s*([-\d.]+)[ ,]+([-\d.]+)/);
+          if (m) { dx += +m[1]; dy += +m[2]; }
+        }
+        var box = { x0: bb.x + dx, x1: bb.x + bb.width + dx, y0: bb.y + dy, y1: bb.y + bb.height + dy }, shift = 0;
+        if (box.x0 < vb.x + pad) shift = vb.x + pad - box.x0;
+        else if (box.x1 > vb.x + vb.width - pad) shift = vb.x + vb.width - pad - box.x1;
+        if (shift) { t.setAttribute('transform', 'translate(' + shift.toFixed(1) + ' 0)'); box.x0 += shift; box.x1 += shift; }
+        return box;
       });
+      var waves = [];
+      boxes.forEach(function (bx, i) {
+        for (var k = 0; k < waves.length; k++) {
+          var clear = waves[k].every(function (j) { var c = boxes[j]; return bx.x1 + gap < c.x0 || c.x1 + gap < bx.x0 || bx.y1 + gap < c.y0 || c.y1 + gap < bx.y0; });
+          if (clear) { waves[k].push(i); return; }
+        }
+        waves.push([i]);
+      });
+      if (waves.length < 2) return;
+      it.order = waves.sort(function (x, y) { return x.length - y.length; });   // the fullest wave arrives last and stays
+      it.svg.classList.add('waved');
     }
-    measure();
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
-    if ('ResizeObserver' in window) { var ro = new ResizeObserver(measure); items.forEach(function (it) { ro.observe(it.svg); }); }
-    else window.addEventListener('resize', measure);
+    function show(it) {
+      if (!it.order) return;
+      var vh = window.innerHeight, k, track = it.svg.closest('.msys-track');
+      if (track) {   // the opening system is held on screen while its track scrolls: its names take turns after the parts separate
+        var tr = track.getBoundingClientRect();
+        k = clamp01(((vh * 0.3 - tr.top) / Math.max(1, track.offsetHeight - vh * 0.75) - 0.55) / 0.4);
+      } else {
+        var r = it.svg.getBoundingClientRect();
+        k = clamp01((vh * 0.9 - r.top) / Math.max(1, vh * 0.55 + r.height * 0.35));
+      }
+      var n = it.order.length, cur = Math.min(n - 1, Math.floor(k * n));
+      if (cur === it.cur) return;
+      it.cur = cur;
+      it.labels.forEach(function (t, i) { t.classList.toggle('wave-off', it.order[cur].indexOf(i) < 0); });
+    }
+    function placeAll() { items.forEach(place); showAll(); }
+    function showAll() { items.forEach(show); }
+    var q1 = false, q2 = false;
+    window.addEventListener('scroll', function () { if (!q1) { q1 = true; requestAnimationFrame(function () { q1 = false; showAll(); }); } }, { passive: true });
+    window.addEventListener('resize', function () { if (!q2) { q2 = true; requestAnimationFrame(function () { q2 = false; placeAll(); }); } });
+    document.addEventListener('toggle', function () { requestAnimationFrame(placeAll); }, true);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeAll);
+    onLang.push(placeAll);
+    ticks.push(showAll);
+    placeAll();
   }
-  figureKeys();
+  labelWaves();
 
   applyLang(new URL(location.href).searchParams.get('lang') === 'es' ? 'es' : 'en');
 
@@ -785,15 +833,25 @@
   var RIDE = 0.72;               // the stage travels down at 72% of the scroll: it goes with the reader
   var HOLD = 0.10, END = 0.82;   // a breath on the flower; the house lands just before the stage does
   var lastT = -1, heroT = 0, heroOut = false;
+  // her note (2026-09-14): on a phone the stage seemed to struggle to follow the scroll. A stage moved by script always
+  // runs a frame behind a touch scroll, so on touch screens the browser holds it instead (position: sticky, CSS)
+  // and the script only turns the scroll into the drawing.
+  var pinned = false;
+  function measurePin() { pinned = !!(stage && getComputedStyle(stage).position === 'sticky'); }
+  measurePin();
 
   function lightList(list, n) { list.forEach(function (el, i) { el.classList.toggle('on', i === n); }); }
   function morphTick() {
     if (!morph) return;
     var travel = morph.offsetHeight - window.innerHeight;
     var top = -morph.getBoundingClientRect().top;
-    var ride = travel > 4 ? Math.max(0, Math.min(top * RIDE, travel)) : 0;
-    stage.style.setProperty('--ride', ride.toFixed(1) + 'px');
-    var p = travel > 4 ? clamp01(top * RIDE / travel) : 0;
+    var p;
+    if (pinned) p = travel > 4 ? clamp01(top / travel) : 0;
+    else {
+      var ride = travel > 4 ? Math.max(0, Math.min(top * RIDE, travel)) : 0;
+      stage.style.setProperty('--ride', ride.toFixed(1) + 'px');
+      p = travel > 4 ? clamp01(top * RIDE / travel) : 0;
+    }
     var t = clamp01((p - HOLD) / (END - HOLD));
     heroT = t; heroOut = morph.getBoundingClientRect().bottom < window.innerHeight * 0.55;
     stage.style.setProperty('--survey', String(1 - clamp01((p - 0.06) / 0.1)));
@@ -857,7 +915,7 @@
   }
   tick();
   window.addEventListener('scroll', tick, { passive: true });
-  window.addEventListener('resize', function () { lastT = -1; tick(); }, { passive: true });
+  window.addEventListener('resize', function () { lastT = -1; measurePin(); tick(); }, { passive: true });
 })();
 
 // THE WORK — one piece of land as the spine of the page. The scroll through .ws-track is the

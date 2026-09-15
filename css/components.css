@@ -1227,3 +1227,34 @@
   /* a print's empty box never sits over another print's words: only the paper and its caption take the pointer */
   .print{pointer-events:none;}
   .print .paper,.print figcaption{pointer-events:auto;}
+
+  /* ---------- her notes (2026-09-14) ---------- */
+  /* Home on touch screens: the browser holds the stage (sticky) so the drawing never trails a finger; clip, not hidden,
+     so the sticky stage still works */
+  @media (hover:none) and (pointer:coarse){
+    .js .hero{overflow:clip;}
+    .js .hero .stage{position:sticky;top:0;transform:none;will-change:auto;}
+  }
+  /* names on the drawings take turns on small screens (labelWaves in motion.js) */
+  svg.waved text{transition:opacity 320ms var(--ease-out);}
+  svg.waved text.wave-off{opacity:0!important;}
+  /* The Practice opens with the Burj Khalifa rising out of the sand */
+  .tower .sand path{fill:none;stroke:var(--laton-on-verde);stroke-width:1.1;opacity:.75;transition:opacity 900ms var(--ease-out);}
+  .tower.armed.s3 .sand path{opacity:.4;}
+  .tower .mulls .grid{stroke-width:.8;}
+  .tower .spire-g path:not(.spire){stroke:var(--on-verde);stroke-width:.8;opacity:0;transition:opacity 600ms var(--ease-out) 900ms;}
+  .tower.armed.s3 .spire-g path:not(.spire){opacity:.5;}
+  .tower .edge{transition-duration:1500ms!important;}
+  .tower-line{margin:var(--s-16) 0 0;max-width:30ch;font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:300;font-size:var(--t-20);line-height:1.4;color:var(--on-verde);}
+  /* less scroll for the same story (her note): The Work and The Aerodrome */
+  .js .ws-track{height:3900svh;}
+  .aero.live .aero-track{height:1200svh;}
+
+  /* About · 08 Drawing: a pencil study in place of a photograph, drawn by the scroll (stage by stage, never back) */
+  .ch-sketch .sketch{margin:0;}
+  .sketch-svg{display:block;width:100%;height:auto;aspect-ratio:4/5;}
+  .sketch-svg path{fill:none;stroke:var(--tinta);stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round;}
+  .sketch-svg .guide-l path{stroke:var(--laton);stroke-width:.8;opacity:.6;}
+  .sketch-svg .shade{stroke-width:.9;opacity:.7;}
+  .js .mfig.sketch.armed .sketch-svg path{stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1100ms var(--ease-out);}
+  .js .mfig.sketch.armed.s1 .st1 path,.js .mfig.sketch.armed.s2 .st2 path,.js .mfig.sketch.armed.s3 .st3 path{stroke-dashoffset:0;}

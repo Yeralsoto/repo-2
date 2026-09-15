@@ -115,6 +115,9 @@ function insideRuns(a, b, poly, n = 60) {
   return runs;
 }
 
+// the comps, as places on the land (the camera also reads them, to keep them all in a phone's frame)
+export const COMP_AT = [[150, PUBLIC.z(150) + 45], SITES.retail.c, [-250, 50], SITES.sub2.c, FARMS[6], SITES.rural[0], [320, -230], [-410, -90]];
+
 export function createStory(stage, L) {
   const S = T.story;
   const svg = el('svg', { class: 'ftl-story', 'aria-hidden': 'true', focusable: 'false' });
@@ -144,7 +147,8 @@ export function createStory(stage, L) {
   const seg = (a, b) => `M${f1(a[0])} ${f1(a[1])}L${f1(b[0])} ${f1(b[1])}`;
   const draw = (e, k) => { e.style.strokeDashoffset = (1 - Math.min(1, Math.max(0, k))).toFixed(3); };
   const show = (e, on) => { e.style.display = on ? '' : 'none'; };
-  const opa = (e, k) => { e.style.opacity = Math.min(1, Math.max(0, k)).toFixed(3); };
+  // a word's own opacity is remembered, so the narrow-screen pass (settle) can let it step aside without compounding
+  const opa = (e, k) => { const o = Math.min(1, Math.max(0, k)); e.style.opacity = o.toFixed(3); if (e.tagName === 'text') e._o = o; };
   const drawPath = (parent, cls) => el('path', { class: cls, pathLength: '1', 'stroke-dasharray': '1', 'stroke-dashoffset': '1' }, parent);
   const plainPath = (parent, cls) => el('path', { class: cls }, parent);
   const circ = (parent, r, cls) => el('circle', { r: String(r), class: cls }, parent);
@@ -164,11 +168,34 @@ export function createStory(stage, L) {
     put(t, cx + c * (r + 15), cy + s * (r + 15) + (s > 0.3 ? 11 : s < -0.3 ? -3 : 4));
   };
 
+  // ---------- phones ----------
+  // On a narrow portrait screen the site's bar covers the top of the film and the page's words its lower
+  // part, so every word lives in the band between: 72px from the top to 58% of the height, 12px from the
+  // sides. Where words would crowd they arrive one at a time (each leaves before the next comes) rather than
+  // shrink; diagrams take a narrow layout of their own; settle() makes sure no chip leaves the band or sits on
+  // another one.
+  let NARROW = false, busy = [], pathDots = [];
+  const pathTexts = new Set();
+  const bandBox = () => (H > W ? { l: 12, r: W - 12, t: 72, b: H * 0.58 } : { l: 12, r: W - 12, t: 12, b: H - 12 });
+  // the Papel chip around a word (filter #ftl-chip: 10% of the width, 34% of the height on each side)
+  const chipOf = (t) => { const b = t.getBBox(); return { l: b.x - b.width * 0.1, r: b.x + b.width * 1.1, t: b.y - b.height * 0.34, b: b.y + b.height * 1.34 }; };
+  const hit = (a, b, m = 2) => a.l < b.r + m && b.l < a.r + m && a.t < b.b + m && b.t < a.b + m;
+  const inBand = (c, B) => c.l >= B.l && c.r <= B.r && c.t >= B.t && c.b <= B.b;
+  // a diagram's area on the screen, so the approval path's name does not sit on its lines
+  const claim = (l, t, r, b, k) => { if (NARROW && k > 0.001) busy.push({ l, t, r, b, k }); };
+  // item i of n owns [a + i·d, a + (i+1)·d]: it arrives, and leaves just before the next arrives (the last
+  // one stays when hold is set, for its scene to take away)
+  const oneAt = (i, n, a, b, p, hold = false) => {
+    const d = (b - a) / n, f = Math.min(0.0015, d * 0.3), s = a + i * d, e = s + d;
+    return smooth(s, s + f, p) * (hold && i === n - 1 ? 1 : 1 - smooth(e - f, e, p));
+  };
+
   const scenes = [];
   const scene = (win, build) => { const g = el('g', {}, svg); scenes.push({ win, g, fn: build(g) }); };
 
   // words anchored to places on the land, arriving one after another
-  const noteSet = (g, grp, anchors, w) => {
+  // (narrow screens: one at a time, from w[0] until endNarrow, and a word near the right edge leans left)
+  const noteSet = (g, grp, anchors, w, endNarrow = w[3]) => {
     const items = anchors.map((anchor, i) => {
       const gg = el('g', {}, g);
       return { anchor, gg, dot: circ(gg, 2.4, 'dot'), lead: plainPath(gg, 'brass thin'), text: word(gg, `${grp}.${i}`) };
@@ -176,11 +203,19 @@ export function createStory(stage, L) {
     return (p) => {
       const step = (w[1] - w[0] - 0.006) / Math.max(1, items.length - 1);
       items.forEach((n, i) => {
-        const k = smooth(w[0] + i * step, w[0] + i * step + 0.006, p) * (1 - smooth(w[2], w[3], p));
+        const k = NARROW ? oneAt(i, items.length, w[0], endNarrow, p)
+          : smooth(w[0] + i * step, w[0] + i * step + 0.006, p) * (1 - smooth(w[2], w[3], p));
         const a = P(n.anchor);
         at(n.dot, a);
-        n.lead.setAttribute('d', seg(a, [a[0] + 13, a[1] - 15]));
+        n.text.setAttribute('text-anchor', 'start');
         put(n.text, a[0] + 16, a[1] - 20);
+        let side = 1;
+        if (NARROW && k > 0.001 && chipOf(n.text).r > W - 12) {
+          side = -1;
+          n.text.setAttribute('text-anchor', 'end');
+          put(n.text, a[0] - 16, a[1] - 20);
+        }
+        n.lead.setAttribute('d', seg(a, [a[0] + 13 * side, a[1] - 15]));
         opa(n.gg, k);
       });
     };
@@ -210,7 +245,10 @@ export function createStory(stage, L) {
     const n = S.path.length;
     const ghost = el('path', { style: 'fill:none;stroke:#8F7546;stroke-width:1;stroke-dasharray:5 5' }, g);
     const lit = el('path', { style: 'fill:none;stroke:#8F7546;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round' }, g);
-    const marks = S.path.map((_, i) => ({ c: circ(g, 3.6, 'node'), t: word(g, 'path.' + i, 'start', 'small'), at: upTo((i + 1) / n).pop() }));
+    // every dot first, then every name, so a later milestone's dot never sits on an earlier name
+    const marks = S.path.map((_, i) => ({ c: circ(g, 3.6, 'node'), at: upTo((i + 1) / n).pop() }));
+    marks.forEach((mk, i) => { mk.t = word(g, 'path.' + i, 'start', 'small'); pathTexts.add(mk.t); });
+    pathDots = marks.map((mk) => mk.c);
     return (p) => {
       const out = 1 - smooth(S.pathOut[0], S.pathOut[1], p);
       const ks = S.path.map((m) => smooth(m - 0.004, m + 0.004, p));
@@ -221,6 +259,7 @@ export function createStory(stage, L) {
         const q = P(mk.at), k = ks[i], newer = i + 1 < n ? ks[i + 1] : 0;
         at(mk.c, q); mk.c.classList.toggle('done', k > 0.5); opa(mk.c, k * out);
         // the milestone name steps aside while the feedback rails are read across the same ground
+        mk.t._q = q; mk.t.setAttribute('text-anchor', 'start');
         put(mk.t, q[0] + 10, q[1] + 4); opa(mk.t, k * (1 - newer) * (1 - win4(S.feedback, p)) * out);
       });
     };
@@ -297,28 +336,31 @@ export function createStory(stage, L) {
 
   // ---------- the rules ----------
   scene([S.rulesNotes[0], S.rulesNotes[3]], (g) =>
-    noteSet(g, 'rules', [[60, PUBLIC.z(60) - 16], L.spine.at(L.S * 0.4).p, [-140, -60], L.C], S.rulesNotes));
+    noteSet(g, 'rules', [[60, PUBLIC.z(60) - 16], L.spine.at(L.S * 0.4).p, [-140, -60], L.C], S.rulesNotes, S.route[0]));
 
   scene([S.route[0], S.route[3]], (g) => {
     const nodes = [0, 1, 2, 3].map((i) => ({ c: circ(g, 4, 'node'), t: word(g, 'route.' + i, 'middle', 'dia') }));
     const links = [0, 1, 2].map(() => drawPath(g, 'ink thin'));
     const strike = drawPath(g, 'fail');
     return (p) => {
-      const bw = Math.min(W * 0.5, 560), x0 = W - bw - W * 0.08, y = H * 0.17;
+      // narrow: the row spans the top of the band (the land keeps that strip clear, camera.js) and only the
+      // newest step carries its name
+      const bw = NARROW ? W - 88 : Math.min(W * 0.5, 560), x0 = NARROW ? 44 : W - bw - W * 0.08, y = NARROW ? 104 : H * 0.17;
       const out = 1 - smooth(S.route[2], S.route[3], p), span = S.route[1] - S.route[0];
       nodes.forEach((n, i) => {
         const x = x0 + (bw * i) / 3, k = smooth(S.route[0] + i * span * 0.2, S.route[0] + i * span * 0.2 + span * 0.14, p);
         at(n.c, [x, y]); put(n.t, x, y + 22);
-        opa(n.c, k * out); opa(n.t, k * out);
+        opa(n.c, k * out); opa(n.t, (NARROW ? oneAt(i, 4, S.route[0], S.route[1], p, true) : k) * out);
       });
       links.forEach((e, i) => {
         e.setAttribute('d', seg([x0 + (bw * i) / 3 + 8, y], [x0 + (bw * (i + 1)) / 3 - 8, y]));
         draw(e, smooth(S.route[0] + (i + 0.6) * span * 0.2, S.route[0] + (i + 0.6) * span * 0.2 + span * 0.14, p));
         opa(e, out);
       });
-      // the first route does not hold
+      claim(0, 72, W, y + 34, smooth(S.route[0], S.route[0] + span * 0.14, p) * out);
+      // the first route does not hold (narrow: a slash through its node, since its name has already gone)
       const w = Math.min(120, bw / 3 - 10);
-      strike.setAttribute('d', seg([x0 - w / 2, y + 18], [x0 + w / 2, y + 18]));
+      strike.setAttribute('d', NARROW ? seg([x0 - 9, y + 9], [x0 + 9, y - 9]) : seg([x0 - w / 2, y + 18], [x0 + w / 2, y + 18]));
       draw(strike, smooth(S.route[0] + span * 0.3, S.route[0] + span * 0.45, p));
       opa(strike, out);
     };
@@ -403,6 +445,8 @@ export function createStory(stage, L) {
     }
     const usableTight = offsetPoly(clipHalf(offsetPoly(L.PARCEL, -18), (q) => q[0] - (Math.max(...L.wetland.map((w) => w[0])) + 22)), 0);
     const extFrom = [-20, PUBLIC.z(-20) - 11], extTo = [-640, PUBLIC.z(-640) - 11];
+    // narrow: the extension is drawn to the parcel's west corner, so it and its name stay in the frame
+    const westX = Math.min(...L.PARCEL.map((q) => q[0])) + 12, extToNarrow = [westX, PUBLIC.z(westX) - 11];
     const back = [L.C[0] + L.nEnd[0] * 0, L.C[1]];
     const roadExt = [L.C, [L.C[0] - L.back[0] * 70, L.C[1] - L.back[1] * 70]];
     void back;
@@ -442,20 +486,21 @@ export function createStory(stage, L) {
       if (agg > 0.001) { els.split.setAttribute('d', splits.map(([a, b]) => seg(P(a), P(b))).join('')); opa(els.split, agg); }
       if (cons > 0.001) { els.merged.setAttribute('d', merged.map((m) => dWorld(m, true)).join('')); opa(els.merged, cons); }
       const top = P([L.C[0], L.C[1] - 95]);
-      scen.forEach((t, i) => { put(t, top[0], top[1]); opa(t, [agg, cons, bal][i]); });
+      scen.forEach((t, i) => { if (NARROW) put(t, W / 2, 112); else put(t, top[0], top[1]); opa(t, [agg, cons, bal][i]); });
       // a moved assumption, and what the scenarios do about it
       const kS = smooth(S.stress[0], S.stress[1], p), stressOut = 1 - smooth(S.respond[2], S.respond[3], p);
       const stressOn = kS > 0.001 && stressOut > 0.001;
       for (const e of [els.utilExt, els.roadExt, els.shrink, els.splitFail]) show(e, stressOn);
       if (stressOn) {
-        els.utilExt.setAttribute('d', dWorld([extFrom, extTo])); draw(els.utilExt, kS * 1.4); opa(els.utilExt, stressOut);
+        const eTo = NARROW ? extToNarrow : extTo;
+        els.utilExt.setAttribute('d', dWorld([extFrom, eTo])); draw(els.utilExt, kS * 1.4); opa(els.utilExt, stressOut);
         els.roadExt.setAttribute('d', dWorld(roadExt)); opa(els.roadExt, smooth(S.stress[0] + 0.002, S.stress[1], p) * stressOut);
         els.shrink.setAttribute('d', dWorld(usableTight, true)); opa(els.shrink, smooth(S.stress[0] + 0.004, S.stress[1], p) * stressOut * 0.8);
-        const anchors = [roadExt[1], extTo, usableTight[Math.floor(usableTight.length * 0.3)], L.spine.at(L.S * 0.55).p];
+        const anchors = [roadExt[1], eTo, usableTight[Math.floor(usableTight.length * 0.3)], L.spine.at(L.S * 0.55).p];
         stressW.forEach((t, i) => {
           const q = P(anchors[i]);
           put(t, q[0] + 10, q[1] - 10);
-          opa(t, smooth(S.stress[0] + i * 0.002, S.stress[0] + i * 0.002 + 0.003, p) * stressOut);
+          opa(t, (NARROW ? oneAt(i, 4, S.stress[0], S.respond[2], p) : smooth(S.stress[0] + i * 0.002, S.stress[0] + i * 0.002 + 0.003, p)) * stressOut);
         });
         // the aggressive plan does not survive; the balanced one holds
         const fail = win4(S.respond, p);
@@ -468,11 +513,8 @@ export function createStory(stage, L) {
 
   // ---------- comps ----------
   scene([S.comps[0], S.comps[3]], (g) => {
-    const comps = [
-      { a: [150, PUBLIC.z(150) + 45], d: 0 }, { a: SITES.retail.c, d: 1 }, { a: [-250, 50], d: 2 },
-      { a: SITES.sub2.c, d: 3 }, { a: FARMS[6], d: 4 }, { a: SITES.rural[0], d: 5 },
-      { a: [320, -230], d: -1 }, { a: [-410, -90], d: -1 },
-    ].map((c) => ({ ...c, ring: circ(g, 7, 'ring'), t: c.d >= 0 ? word(g, 'comps.' + c.d) : null, link: c.d < 0 ? drawPath(g, 'brass thin') : null }));
+    const comps = COMP_AT.map((a, i) => ({ a, d: [0, 1, 2, 3, 4, 5, -1, -1][i] }))
+      .map((c) => ({ ...c, ring: circ(g, 7, 'ring'), t: c.d >= 0 ? word(g, 'comps.' + c.d) : null, link: c.d < 0 ? drawPath(g, 'brass thin') : null }));
     const subject = circ(g, 5, 'node done');
     return (p) => {
       const out = 1 - smooth(S.comps[2], S.comps[3], p), kFade = smooth(S.compFade[0], S.compFade[1], p);
@@ -483,7 +525,8 @@ export function createStory(stage, L) {
         at(c.ring, q);
         if (c.t) {
           put(c.t, q[0] + 12, q[1] - 10);
-          opa(c.t, smooth(S.compDiff[0] + c.d * 0.0015, S.compDiff[0] + c.d * 0.0015 + 0.004, p) * (1 - kFade) * out);
+          opa(c.t, (NARROW ? oneAt(c.d, 6, S.compDiff[0], S.compFade[1], p)
+            : smooth(S.compDiff[0] + c.d * 0.0015, S.compDiff[0] + c.d * 0.0015 + 0.004, p) * (1 - kFade)) * out);
           opa(c.ring, kIn * (1 - 0.85 * kFade) * out);
         } else {
           opa(c.ring, kIn * out);
@@ -552,10 +595,36 @@ export function createStory(stage, L) {
     const table = drawPath(g, 'brass');
     const stages = [0, 1, 2].map((i) => ({ line: plainPath(g, 'brass'), t: word(g, 'stage.' + i, 'start', 'small') }));
     return (p) => {
-      // to the right of the parcel, clear of the approval path running up its road
-      const b = W < 700 ? boxOf(0.9, 0.34, 0.1) : { x: W * 0.55, y: H * 0.12, w: Math.min(W * 0.4, 520), h: Math.min(H * 0.42, 380) };
       const out = 1 - smooth(S.closer[2], S.closer[3], p);
       const kIn = smooth(S.closer[0], S.closer[1], p), kC = smooth(S.closerCollapse[0], S.closerCollapse[1], p), kX = smooth(S.closerAcross[0], S.closerAcross[1], p);
+      if (NARROW) {
+        // narrow: the table is a horizontal line; the details collapse into five lines above it and the five
+        // are carried down across it, with the stages beneath — all inside the band
+        const bx = 20, bw = W - 40, top = 92, gap = 28;
+        const yA = (i) => top + 14 + i * gap, yT = yA(4) + 20, yB = (i) => yT + 30 + i * gap, yS = (i) => yB(4) + 34 + i * 26;
+        table.setAttribute('d', seg([bx, yT], [bx + bw, yT])); draw(table, kIn); opa(table, out * 0.8);
+        DET.forEach((d, i) => {
+          const x = bx + d[0] * bw * 0.7, y = top + d[1] * (yT - top - 16), l = d[2] * bw * 0.16;
+          bars[i].setAttribute('d', `M${f1(lerp(x, bx + bw * 0.04, kC))} ${f1(lerp(y, yA(i % 5), kC))}h${f1(lerp(l, bw * 0.4, kC))}`);
+          opa(bars[i], smooth(S.closer[0] + i * 0.0002, S.closer[0] + i * 0.0002 + 0.004, p) * (1 - kC) * out);
+        });
+        five.forEach((f, i) => {
+          const y = lerp(yA(i), yB(i), kX), x = bx + bw * 0.04;
+          f.line.setAttribute('d', `M${f1(x)} ${f1(y)}h${f1(bw * 0.4)}`);
+          put(f.t, x, y - 8);
+          opa(f.line, kC * out); opa(f.t, kC * out);
+        });
+        stages.forEach((s, i) => {
+          const k = smooth(S.closerAcross[0] + i * 0.002, S.closerAcross[1] + i * 0.002, p);
+          const y = yS(i), xa = bx + bw * 0.04 + i * bw * 0.08;
+          s.line.setAttribute('d', `M${f1(xa)} ${f1(y)}h${f1(bw * 0.3 * k)}`);
+          put(s.t, xa, y - 8); opa(s.line, out); opa(s.t, k * out);
+        });
+        claim(0, 72, W, yS(2) + 10, kIn * out);
+        return;
+      }
+      // to the right of the parcel, clear of the approval path running up its road
+      const b = { x: W * 0.55, y: H * 0.12, w: Math.min(W * 0.4, 520), h: Math.min(H * 0.42, 380) };
       const midX = b.x + b.w * 0.5;
       table.setAttribute('d', seg([midX, b.y], [midX, b.y + b.h])); draw(table, kIn); opa(table, out * 0.8);
       DET.forEach((d, i) => {
@@ -611,13 +680,16 @@ export function createStory(stage, L) {
       contours.setAttribute('d', contourRuns.map((r) => dWorld(r)).join('')); opa(contours, kT * out * 0.45);
       // concept → submission → comment → revision → approval, with one loop back
       // the review cycle sits along the south edge of the frame, away from the plat it is reviewing
-      // (narrow frames keep the bottom for the page's words, so the row rides the top edge, above the plat)
-      const bw = Math.min(W * 0.52, 600), x0 = W - bw - W * 0.07, y = W < 700 ? H * 0.06 : H * 0.9, span = S.review[1] - S.review[0];
+      // (narrow frames keep the bottom for the page's words, so the row rides the top of the band, in a strip
+      // the land keeps clear (camera.js), and only the newest stage carries its name)
+      const bw = NARROW ? W - 72 : Math.min(W * 0.52, 600), x0 = NARROW ? 36 : W - bw - W * 0.07, y = NARROW ? 112 : H * 0.9, span = S.review[1] - S.review[0];
       const nx = (i) => x0 + (bw * i) / 4;
       nodes.forEach((n, i) => {
         const k = smooth(S.review[0] + i * span * 0.16, S.review[0] + i * span * 0.16 + span * 0.12, p);
-        at(n.c, [nx(i), y]); put(n.t, nx(i), y + 22); opa(n.c, k * out); opa(n.t, k * out);
+        at(n.c, [nx(i), y]); put(n.t, nx(i), y + 22); opa(n.c, k * out);
+        opa(n.t, (NARROW ? oneAt(i, 5, S.review[0], S.review[1], p, true) : k) * out);
       });
+      claim(0, 72, W, y + 32, kT * out);
       links.forEach((e, i) => {
         e.setAttribute('d', seg([nx(i) + 7, y], [nx(i + 1) - 7, y]));
         draw(e, smooth(S.review[0] + (i + 0.6) * span * 0.16, S.review[0] + (i + 0.6) * span * 0.16 + span * 0.12, p)); opa(e, out);
@@ -639,14 +711,24 @@ export function createStory(stage, L) {
     const deps = DEPS.map(() => ({ arc: drawPath(g, 'brass'), hd: plainPath(g, 'brass') }));
     return (p) => {
       // the lanes stay in the upper half: the words keep the lower left
-      const b = boxOf(0.8, 0.4, 0.12), out = 1 - smooth(S.lanes[2], S.lanes[3], p), n = SPAN.length;
-      const lx = b.x + b.w * 0.2, lw = b.w * 0.78, step = (S.lanes[1] - S.lanes[0]) / n;
-      const ly = (i) => b.y + ((i + 0.5) * b.h) / n;
+      // (narrow: the lanes fill the band's width and each name sits above its own lane, clear of the others)
+      const out = 1 - smooth(S.lanes[2], S.lanes[3], p), n = SPAN.length, step = (S.lanes[1] - S.lanes[0]) / n;
+      let lx, lw, ly;
+      if (NARROW) {
+        const top = 92, bot = (H > W ? H * 0.58 : H) - 14, rowH = (bot - top) / n;
+        lx = 20; lw = W - 40; ly = (i) => top + (i + 1) * rowH - 6;
+        claim(0, 72, W, bot + 6, smooth(S.lanes[0], S.lanes[0] + step, p) * out);
+      } else {
+        const b = boxOf(0.8, 0.4, 0.12);
+        lx = b.x + b.w * 0.2; lw = b.w * 0.78; ly = (i) => b.y + ((i + 0.5) * b.h) / n;
+      }
       lanes.forEach((l, i) => {
         const k = smooth(S.lanes[0] + i * step, S.lanes[0] + i * step + step, p);
         l.rule.setAttribute('d', seg([lx, ly(i)], [lx + lw, ly(i)])); opa(l.rule, k * out * 0.35);
         l.bar.setAttribute('d', seg([lx + SPAN[i][0] * lw, ly(i)], [lx + SPAN[i][1] * lw, ly(i)])); draw(l.bar, k); opa(l.bar, out);
-        put(l.t, lx - 14, ly(i) + 4); opa(l.t, k * out);
+        l.t.setAttribute('text-anchor', NARROW ? 'start' : 'end');
+        if (NARROW) put(l.t, lx, ly(i) - 11); else put(l.t, lx - 14, ly(i) + 4);
+        opa(l.t, k * out);
       });
       const dstep = (S.laneDeps[1] - S.laneDeps[0]) / deps.length;
       deps.forEach((d, i) => {
@@ -673,6 +755,7 @@ export function createStory(stage, L) {
       const kP = smooth(S.problem[0], S.problem[1], p), kA = smooth(S.adjust[0], S.adjust[1], p);
       bg.setAttribute('cx', f1(x0 + bw / 2)); bg.setAttribute('cy', f1(y0 + 20)); bg.setAttribute('rx', f1(bw * 0.72)); bg.setAttribute('ry', '70');
       opa(bg, kIn * out);
+      claim(x0 - 12, y0 - 34, x0 + bw + 12, y0 + bh * 2 + 20, kIn * out);
       const span = BASE.map((b) => b.slice());
       span[2][1] += 0.12 * kP;                                      // utilities run long
       span[3] = [span[3][0] + 0.12 * kP, span[3][1] + 0.12 * kP];   // the road waits
@@ -727,8 +810,31 @@ export function createStory(stage, L) {
     const rails = [plainPath(g, 'brass thin'), plainPath(g, 'brass thin')];
     const rows = [word(g, 'fbRows.0', 'end', 'small'), word(g, 'fbRows.1', 'end', 'small')];
     return (p) => {
-      const narrow = W < 700, b = boxOf(narrow ? 0.78 : 0.6, 0.34, 0.14), out = 1 - smooth(S.feedback[2], S.feedback[3], p);
+      const out = 1 - smooth(S.feedback[2], S.feedback[3], p);
       const kIn = smooth(S.feedback[0], S.feedback[1], p), kO = smooth(S.outcomes[0], S.outcomes[1], p), kM = smooth(S.adjustModel[0], S.adjustModel[1], p);
+      if (NARROW) {
+        // narrow: turned on its side — each measure is a row with its name at the left; the assumed rail and
+        // the actual rail stand as two columns, each named once above itself
+        const top = 96, A = Math.round(W * 0.55), Bx = W - 58, rowY = (i) => top + 44 + i * 64, drift = (i) => OFF[i] * 220;
+        rails[0].setAttribute('d', seg([A, top + 20], [A, rowY(4) + 24])); rails[1].setAttribute('d', seg([Bx, top + 20], [Bx, rowY(4) + 24]));
+        opa(rails[0], kIn * out * 0.5); opa(rails[1], kO * out * 0.5);
+        rows.forEach((t) => t.setAttribute('text-anchor', 'middle'));
+        put(rows[0], A, top + 4); opa(rows[0], kIn * out);
+        put(rows[1], Bx, top + 4); opa(rows[1], kO * out);
+        cols.forEach((c, i) => {
+          const ay = rowY(i) + drift(i), ty = lerp(rowY(i), ay, kM);
+          c.top.setAttribute('d', seg([A - 9, ty], [A + 9, ty])); opa(c.top, kIn * out);
+          c.bot.setAttribute('d', seg([Bx - 9, ay], [Bx + 9, ay])); opa(c.bot, kO * out);
+          c.link.setAttribute('d', seg([A + 12, ty], [Bx - 12, ay])); draw(c.link, kO); opa(c.link, out);
+          c.t.setAttribute('text-anchor', 'start');
+          put(c.t, 20, rowY(i) + 4); opa(c.t, kIn * out);
+        });
+        claim(0, 72, W, rowY(4) + 30, kIn * out);
+        return;
+      }
+      rows.forEach((t) => t.setAttribute('text-anchor', 'end'));
+      cols.forEach((c) => c.t.setAttribute('text-anchor', 'middle'));
+      const narrow = W < 700, b = boxOf(narrow ? 0.78 : 0.6, 0.34, 0.14);
       const ty = b.y + b.h * 0.34, by = b.y + b.h * 0.86;
       rails[0].setAttribute('d', seg([b.x, ty], [b.x + b.w, ty])); rails[1].setAttribute('d', seg([b.x, by], [b.x + b.w, by]));
       opa(rails[0], kIn * out * 0.5); opa(rails[1], kO * out * 0.5);
@@ -814,8 +920,59 @@ export function createStory(stage, L) {
 
   function resize(w, h) { W = w; H = h; svg.setAttribute('viewBox', `0 0 ${w} ${h}`); }
 
+  // Narrow screens, after every scene has placed its words: each word's chip is kept inside the band; a word
+  // that would still sit on a stronger one steps aside; an approval-path name tries each side of its dot and
+  // takes the first place that covers no word, no other milestone and no diagram — or waits.
+  function settle() {
+    const fade = new Map();
+    if (NARROW) {
+      const B = bandBox(), vis = [], placed = [];
+      texts.forEach((t, idx) => {
+        if (!t.textContent || t.hasAttribute('transform')) return;
+        let o = t._o ?? 1;
+        for (let e = t.parentNode; e && e !== svg; e = e.parentNode) {
+          if (e.style.display === 'none') { o = 0; break; }
+          if (e.style.opacity !== '') o *= +e.style.opacity;
+        }
+        if (o > 0.01) vis.push({ t, o, idx });
+      });
+      vis.filter((v) => !pathTexts.has(v.t)).sort((a, b) => b.o - a.o || b.idx - a.idx).forEach(({ t }) => {
+        let c = chipOf(t);
+        const dx = Math.max(0, B.l - c.l) + Math.min(0, B.r - c.r), dy = Math.max(0, B.t - c.t) + Math.min(0, B.b - c.b);
+        if (dx || dy) { put(t, +t.getAttribute('x') + dx, +t.getAttribute('y') + dy); c = { l: c.l + dx, r: c.r + dx, t: c.t + dy, b: c.b + dy }; }
+        if (placed.some((q) => hit(c, q))) { fade.set(t, 0); return; }
+        placed.push(c);
+      });
+      const dots = pathDots.filter((d) => d.style.opacity !== '' && +d.style.opacity > 0.05).map((d) => ({ d, x: +d.getAttribute('cx'), y: +d.getAttribute('cy') }));
+      vis.filter((v) => pathTexts.has(v.t)).forEach(({ t }) => {
+        const q = t._q;
+        if (!q) return;
+        const cands = [[q[0] + 10, q[1] + 4, 'start'], [q[0] - 10, q[1] + 4, 'end'], [q[0], q[1] - 12, 'middle'], [q[0], q[1] + 22, 'middle']];
+        let fallback = null, chosen = null;
+        for (const [x, y, an] of cands) {
+          t.setAttribute('text-anchor', an); put(t, x, y);
+          const c = chipOf(t);
+          if (!inBand(c, B) || placed.some((o) => hit(c, o))) continue;
+          if (dots.some((d) => Math.hypot(d.x - q[0], d.y - q[1]) > 1 && d.x + 5 > c.l && d.x - 5 < c.r && d.y + 5 > c.t && d.y - 5 < c.b)) continue;
+          const k = busy.reduce((m, z) => (hit(c, z, 0) ? Math.max(m, z.k) : m), 0);
+          if (k === 0) { chosen = [x, y, an]; break; }
+          if (!fallback) fallback = [x, y, an, k];
+        }
+        const pick = chosen || fallback;
+        if (!pick) { t.setAttribute('text-anchor', 'start'); put(t, q[0] + 10, q[1] + 4); fade.set(t, 0); return; }
+        t.setAttribute('text-anchor', pick[2]); put(t, pick[0], pick[1]);
+        if (!chosen) fade.set(t, 1 - pick[3]);
+        placed.push(chipOf(t));
+      });
+    }
+    for (const t of texts) {
+      const f = fade.has(t) ? fade.get(t) : 1;
+      if (f !== 1 || t._faded) { t.style.opacity = ((t._o ?? 1) * f).toFixed(3); t._faded = f !== 1; }
+    }
+  }
+
   function update(p, camera, w, h) {
-    cam = camera; W = w; H = h;
+    cam = camera; W = w; H = h; NARROW = W < 720; busy = [];
     let backing = 0;
     scenes.forEach((s, i) => {
       const on = p >= s.win[0] && p <= s.win[1];
@@ -824,6 +981,7 @@ export function createStory(stage, L) {
       // the approval path runs under everything (scene 0); every other scene is a diagram that wants a backing
       if (i > 0 && on) backing = Math.max(backing, smooth(s.win[0], s.win[0] + 0.006, p) * (1 - smooth(s.win[1] - 0.006, s.win[1], p)));
     });
+    settle();
     opa(wash, backing * 0.42);
     let veil = 0;
     for (const t of S.veils) veil = Math.max(veil, win4(t.w, p) * t.k);

@@ -175,7 +175,9 @@ function init(reduced) {
   // ?p=0.42 pins the film to one frame (for review and screenshots); scroll is ignored.
   const pinned = new URLSearchParams(location.search).get('p');
   const pinnedP = pinned === null ? null : Math.min(1, Math.max(0, parseFloat(pinned) || 0));
+  let reviewP = null;
   const targetP = () => {
+    if (reviewP !== null) return reviewP;
     if (pinnedP !== null) return pinnedP;
     if (reduced) return STAGES[stageIndex];
     if (embed) return embedP;
@@ -202,7 +204,7 @@ function init(reduced) {
 
   function render(p) {
     U.uP.value = p;
-    const focus = cam.update(camera, p, W / H);
+    const focus = cam.update(camera, p, W / H, H);
     atmo.update(p, focus);
     scene.fog.near = Math.max(600, focus.dist * 1.2);
     scene.fog.far = Math.max(2400, focus.dist * 4.2);
@@ -261,6 +263,8 @@ function init(reduced) {
   window.__ftl = {
     L, scene, camera, renderer,
     get p() { return pS; },
+    // review only: paint one frame synchronously (the preview throttles animation frames)
+    renderAt: (p) => { reviewP = pS = Math.min(1, Math.max(0, p)); render(pS); },
     setP: (p) => { window.scrollTo(0, section.offsetTop + p * (section.offsetHeight - window.innerHeight)); },
   };
 }
