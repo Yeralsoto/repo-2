@@ -147,8 +147,8 @@ PAGES = [  # slug, index numeral, (name en, es), (index facts en, es)
     ("about", "II", ("About", "Sobre mí"), ("My story · 9 chapters", "Mi historia · 9 capítulos")),
     ("work", "III", ("The Work", "El trabajo"), ("Scout Land Group · 4 steps", "Scout Land Group · 4 pasos")),
     ("mind", "IV", ("Inside My Mind", "Dentro de mi mente"), ("6 drawers · How I reason", "6 cajones · Cómo razono")),
-    ("practice", "V", ("The Practice", "La práctica"), ("Underwriting, markets, structure · 8 studies", "Análisis, mercados, estructura · 8 estudios")),
-    ("journal", "VI", ("The Journal", "El diario"), ("13 entries · 2025–2026", "13 entradas · 2025–2026")),
+    ("practice", "V", ("The Practice", "La práctica"), ("Underwriting, markets, structure · 10 studies", "Análisis, mercados, estructura · 10 estudios")),
+    ("journal", "VI", ("The Journal", "El diario"), ("19 entries · 2025–2026", "19 entradas · 2025–2026")),
     ("days", "VII", ("The Days", "Los días"), ("19 prints · 2025–2026", "19 copias · 2025–2026")),
     ("aerodrome", "VIII", ("The Aerodrome", "El aeródromo"), ("My thesis, block by block · 2022", "Mi tesis, bloque a bloque · 2022")),
 ]
@@ -763,6 +763,37 @@ FIN_QUESTIONS = [
     ("How do population, income and migration change demand?", "¿Cómo cambian la demanda la población, el ingreso y la migración?"),
 ]
 
+def fig_reading():
+    # the same page twice. The first pass catches one line; the second catches what was already there.
+    def page(x0, marks, cls, base):
+        out = ""
+        for k in range(9):
+            y = 52 + k * 21
+            w = 214 if k not in (3, 8) else 150          # a paragraph does not end flush
+            out += f'<path class="rdline" style="--i:{k + base}" d="M{x0} {y}H{x0 + w}"/>'
+            if k in marks:
+                out += f'<path class="rdmark {cls}" style="--i:{marks.index(k)}" pathLength="1" d="M{x0} {y}H{x0 + w - 16}"/>'
+        return out
+    return ('<svg class="mfig-svg" viewBox="0 0 640 280" role="img" '
+            'aria-label="The same page of text drawn twice as rows of rules. On the first, one row is marked in brass. On the second, the same row and three others are marked." '
+            'data-es-aria="La misma página de texto dibujada dos veces como filas de reglas. En la primera, una fila está marcada en latón. En la segunda, esa misma fila y otras tres.">'
+            + page(60, [4], "first", 0) + page(360, [1, 4, 5, 7], "second", 9)
+            + tx("text", "first reading", "primera lectura", cls="gl small", extra=' x="60" y="268" text-anchor="start"')
+            + tx("text", "again", "otra vez", cls="gl small", extra=' x="360" y="268" text-anchor="start"')
+            + '</svg>')
+
+def fig_writing():
+    # the same thought three times, each pass shorter than the one before. What the prose on this site is trying to do.
+    first = "".join(f'<path d="M60 {y}H{w}"/>' for y, w in ((54, 580), (84, 580), (114, 486)))
+    again = "".join(f'<path class="strike" pathLength="1" d="M60 {y}H{w}"/>' for y, w in ((168, 470), (198, 356)))
+    return ('<svg class="mfig-svg" viewBox="0 0 640 300" role="img" '
+            'aria-label="The same thought written three times. First as three long rules. Then, in clay, as two shorter ones. Last, in brass, as a single short rule." '
+            'data-es-aria="El mismo pensamiento escrito tres veces. Primero como tres reglas largas. Luego, en arcilla, como dos más cortas. Al final, en latón, como una sola regla corta.">'
+            + f'<g class="gloss">{first}</g>{again}'
+            + '<path class="mean" d="M60 252H274"/>'
+            + tx("text", "what was left", "lo que quedó", cls="gl small mean", extra=' x="60" y="286" text-anchor="start"')
+            + '</svg>')
+
 def psection(i, kicker, lines, figure, idea=None, extra=""):
     room = " hondo" if i % 2 else ""
     return (f'<section class="beat practice-s{room}"><div class="wrap pgrid">'
@@ -836,6 +867,21 @@ def practice():
                      ("The way a paper airplane turns a chapter on this site.", "La forma en que un avión de papel pasa un capítulo en este sitio.")]],
                    code,
                    [("How I use AI to build it lives in Inside My Mind.", "Cómo uso la IA para construirlo vive en Dentro de mi mente.")])
+        + psection(8, ("Reading", "Lectura"),
+                   [("I read slowly, and I read the same pages more than once.", "Leo despacio, y releo las mismas páginas más de una vez."),
+                    [("Kenkō.", "Kenkō."), ("Krogerus.", "Krogerus."), ("A county ordinance.", "Una norma del condado."),
+                     ("A title commitment.", "Un compromiso de título.")],
+                    ("The ordinance and the essay ask for the same attention.", "La norma y el ensayo piden la misma atención.")],
+                   pfig(fig_reading(), "600,1300,1400"),
+                   [("A book I finish quickly is usually one I did not need.", "Un libro que termino rápido casi siempre es uno que no necesitaba.")])
+        + psection(9, ("Writing", "Escritura"),
+                   [("I write to find out whether I understood it.", "Escribo para averiguar si lo entendí."),
+                    ("A sentence that will not come out straight is usually a thought that has not finished.",
+                     "Una frase que no sale derecha casi siempre es un pensamiento que no ha terminado."),
+                    [("A memo.", "Un memo."), ("An entry.", "Una entrada."), ("A note I never send.", "Una nota que nunca envío.")]],
+                   pfig(fig_writing(), "600,1300,1400"),
+                   [("Everything here is a notebook. I am in no hurry to call it anything else.",
+                     "Todo esto es un cuaderno. No tengo prisa por llamarlo de otra manera.")])
     )
     tower = (f'<figure class="mfig pfig tower" data-seq="300,1300,1500">{fig_tower()}'
              + label(("Study · Dubai · 828 m", "Estudio · Dubái · 828 m"), ("Burj Khalifa", "Burj Khalifa"), reveal=False)
@@ -845,7 +891,7 @@ def practice():
     opening = (f'<section class="beat threshold"><div class="wrap"><div class="th"><div>'
                f'{hook("Some things I learn because they are useful.", "Algunas cosas las aprendo porque son útiles.")}'
                f'{tx("p", "Others become useful later.", "Otras se vuelven útiles después.", cls="plater", extra=" data-reveal data-late")}'
-               f'{label(("The Practice · 8 studies · 2026", "La práctica · 8 estudios · 2026"))}</div>'
+               f'{label(("The Practice · 10 studies · 2026", "La práctica · 10 estudios · 2026"))}</div>'
                f'<div>{tower}</div>'
                f'</div></div></section>')
     body = (
@@ -854,8 +900,8 @@ def practice():
         + rest(R, ("I learn languages badly, and then less badly.", "Aprendo idiomas mal, y luego menos mal."), "journal")
     )
     return page("practice", ("The Practice — Yeraldin Soto", "La práctica — Yeraldin Soto"),
-                ("What I keep training because it changes how I see: underwriting, buildings, markets, statistics, structure, languages, drawing and code.",
-                 "Lo que sigo entrenando porque cambia cómo veo: análisis de inversiones, edificios, mercados, estadística, estructura, idiomas, dibujo y código."), body)
+                ("What I keep training because it changes how I see: underwriting, buildings, markets, statistics, structure, languages, drawing, code, reading and writing.",
+                 "Lo que sigo entrenando porque cambia cómo veo: análisis de inversiones, edificios, mercados, estadística, estructura, idiomas, dibujo, código, lectura y escritura."), body)
 
 # ================================================================ THE JOURNAL
 # Situations and thoughts before they become frameworks (her master brief). Entries live in tools/journal.py
@@ -1076,6 +1122,112 @@ def vis_line():
             + '<g class="st3"><circle class="dota" cx="584" cy="80" r="6"/>' + lab("still", "quieta", 584, 56, "middle", "gl small acc") + '</g></svg>')
 
 # slug → (drawing, stage pauses, after which story item it sits); a photograph where a photograph means more
+# ---------------------------------------------------------------- drawings for the entries added from her LinkedIn writing
+# Same rule as the others: a drawing of the idea, never a record. No real parcels, prices or parties. One clay
+# element per drawing — it is the punctuation, not the palette.
+def vis_lag():
+    # demand peaks; what the demand asked for arrives years later, on its own curve. The gap between the peaks is the lag.
+    return (svgopen(640, 400, "Two curves on separate baselines. Demand rises, peaks early and settles. What got built rises later and peaks well to the right of it. A clay line measures the distance between the two peaks: the lag. Houses stand at the right, finished.",
+                    "Dos curvas sobre líneas base distintas. La demanda sube, hace pico temprano y se asienta. Lo que se construyó sube después y hace pico mucho más a la derecha. Una línea de arcilla mide la distancia entre los dos picos: el rezago. A la derecha quedan casas terminadas.")
+            + '<g class="st1"><path class="lt" d="M60 180H600"/>'
+              '<path class="ln dr" pathLength="1" d="M70 174C120 168 180 120 256 62C332 104 420 146 598 160"/>'
+            + lab("demand", "demanda", 256, 46) + '</g>'
+            + '<g class="st2"><path class="lt" d="M60 330H600"/>'
+              '<path class="la dr" pathLength="1" d="M70 326C160 320 280 300 406 238C500 258 540 274 598 292"/>'
+            + lab("what got built", "lo que se construyó", 406, 222) + '</g>'
+            + '<g class="st3"><path class="lt dash" d="M256 70V352"/><path class="lt dash" d="M406 246V352"/>'
+              '<path class="lc dr" pathLength="1" d="M256 352H406"/>'
+              '<circle class="dotc" cx="256" cy="352" r="2.5"/><circle class="dotc" cx="406" cy="352" r="2.5"/>'
+            + lab("the lag", "el rezago", 331, 374, "middle", "gl small acc") + '</g></svg>')
+
+def vis_counter():
+    # the same acreage before and after: a question, then an answer with a number in it. The counter is where it changes.
+    left, right = "M60 96L172 74L212 206L80 220Z", "M470 96L582 74L622 206L490 220Z"
+    lots = "".join(f'<path class="lc" d="{d}"/>' for d in ("M508 90V214", "M544 83V211", "M580 76V208"))
+    return (svgopen(640, 300, "The same parcel drawn twice. On the left it is an empty outline: a question. In the middle a counter, with a document on it. On the right the identical outline, now divided by clay lot lines: an answer with a number in it.",
+                    "El mismo terreno dibujado dos veces. A la izquierda es un contorno vacío: una pregunta. En el medio, un mostrador con un documento encima. A la derecha, el mismo contorno, ahora dividido por linderos de arcilla: una respuesta con un número adentro.")
+            + f'<g class="st1"><path class="fv" d="{left}"/><path class="ln dr" pathLength="1" d="{left}"/>'
+            + lab("acreage", "terreno", 136, 250) + lab("a question", "una pregunta", 136, 268) + '</g>'
+            + '<g class="st2"><path class="lt dash" d="M226 150H286"/><path class="lt dash" d="M396 150H456"/>'
+              '<path class="fv" d="M300 148h70v46h-70Z"/><path class="ln dr" pathLength="1" d="M300 148h70v46h-70Z"/>'
+              '<path class="la thick dr" pathLength="1" d="M252 218H420"/>'
+            + lab("the counter", "el mostrador", 336, 244) + '</g>'
+            + f'<g class="st3"><path class="fv" d="{right}"/><path class="ln dr" pathLength="1" d="{right}"/>{lots}'
+            + lab("this many lots", "tantos lotes", 546, 250, "middle", "gl small acc") + lab("an answer", "una respuesta", 546, 268) + '</g></svg>')
+
+def vis_dayone():
+    # the timeline runs one way; the question that decides it runs the other.
+    marks = [(70, ("day one", "día uno"), "start"), (246, ("diligence", "diligencia"), "middle"),
+             (422, ("entitlement", "aprobación"), "middle"), (598, ("the exit", "la salida"), "end")]
+    ticks = "".join(f'<path class="ln" d="M{x} 164V180"/><circle class="dot" cx="{x}" cy="172" r="2.5"/>' for x, _, _ in marks)
+    names = "".join(lab(en, es, 60 if a == "start" else (608 if a == "end" else x), 204 if k % 2 == 0 else 230, a)
+                    for k, (x, (en, es), a) in enumerate(marks))
+    return (svgopen(640, 300, "A timeline with five marks: day one, diligence, entitlement, horizontal, the exit. A clay line arcs back from the exit to day one, carrying the buyer's question the wrong way along the timeline. A second mark sits early, at diligence: the contractor.",
+                    "Una línea de tiempo con cinco marcas: día uno, diligencia, aprobación, obra, la salida. Una línea de arcilla se devuelve en arco desde la salida hasta el día uno, llevando la pregunta del comprador al revés sobre la línea de tiempo. Una segunda marca queda temprano, en la diligencia: el contratista.")
+            + f'<g class="st1"><path class="la dr thick" pathLength="1" d="M70 172H598"/>{ticks}{names}</g>'
+            + '<g class="st2"><path class="lc dr" pathLength="1" d="M598 150C520 58 180 58 74 144"/>'
+              '<circle class="dotc" cx="74" cy="144" r="3"/>'
+            + lab("would I take this down?", "¿yo lo compraría?", 336, 52, "middle", "gl small acc") + '</g>'
+            + '<g class="st3"><path class="ln dr" pathLength="1" d="M246 164V126"/><circle class="dot" cx="246" cy="126" r="2.5"/>'
+            + lab("the contractor, here", "el contratista, aquí", 246, 112) + '</g></svg>')
+
+def vis_compound():
+    # one line keeps its number. The other costs something first, then does what the first one cannot.
+    return (svgopen(640, 300, "Two lines across five years. One rises in a straight, shallow line and is labelled saved. The other, in clay, dips below its own start before curving upward past the first and climbing away. A dashed bracket marks the dip.",
+                    "Dos líneas a lo largo de cinco años. Una sube en línea recta y poco inclinada, rotulada ahorrado. La otra, en arcilla, baja por debajo de su propio inicio antes de curvarse hacia arriba, pasar a la primera y seguir subiendo. Un corchete punteado marca la bajada.")
+            + '<g class="st1"><path class="lt" d="M60 270H600"/>'
+              '<path class="ln dr" pathLength="1" d="M70 236L598 190"/>'
+            + lab("five years", "cinco años", 450, 292) + lab("saved", "ahorrado", 598, 180, "end") + '</g>'
+            + '<g class="st2"><path class="lc dr" pathLength="1" d="M70 244C104 256 134 258 176 250C270 230 380 160 598 62"/>'
+            + lab("what I can do", "lo que soy capaz de hacer", 598, 52, "end", "gl small acc") + '</g>'
+            + '<g class="st3"><path class="lt dash" d="M100 266V252"/><path class="lt dash" d="M192 266V246"/>'
+              '<path class="lt dash" d="M100 266H192"/>'
+            + lab("this part cost money", "esta parte costó dinero", 146, 288) + '</g></svg>')
+
+def vis_energy():
+    # the energy went outward for years. The points it was aimed at had not moved, because they were not going anywhere.
+    C = (320, 156)
+    pts = [(320, 52), (446, 104), (424, 244), (216, 244), (194, 104)]
+    import math as _m
+    spokes = ""
+
+    for x, y in pts:
+        dx, dy = x - C[0], y - C[1]
+        L = _m.hypot(dx, dy) or 1
+        sx, sy = C[0] + dx / L * 26, C[1] + dy / L * 26
+        ex, ey = x - dx / L * 12, y - dy / L * 12
+        spokes += f'<path class="ln dr" pathLength="1" d="M{sx:.0f} {sy:.0f}L{ex:.0f} {ey:.0f}"/><circle class="dot" cx="{x}" cy="{y}" r="3"/>'
+    rests = ""
+    for x, y in pts:                       # outward along the spoke, so the rule never crosses the line that reaches it
+        dx, dy = x - C[0], y - C[1]
+        L = _m.hypot(dx, dy) or 1
+        rx, ry = x + dx / L * 15, y + dy / L * 15
+        rests += f'<path class="la" d="M{rx - 15:.0f} {ry:.0f}h30"/>' 
+    return (svgopen(640, 300, "A centre point with five lines running outward to five other points. Under each outer point a short brass rule: they have not moved. A short clay line curves back into the centre.",
+                    "Un punto central con cinco líneas que salen hacia otros cinco puntos. Bajo cada punto exterior, una regla corta de latón: no se han movido. Una línea corta de arcilla vuelve en curva hacia el centro.")
+            + f'<g class="st1">{spokes}' + lab("the energy going out", "la energía saliendo", 320, 286) + '</g>'
+            + f'<g class="st2">{rests}' + lab("they were already fine", "ya estaban bien", 320, 24) + '</g>'
+            + '<g class="st3"><path class="lc dr" pathLength="1" d="M386 196C352 208 318 196 316 172"/>'
+              f'<circle class="dotc" cx="{C[0]}" cy="{C[1]}" r="3.5"/>'
+            + lab("back", "de vuelta", 400, 214, "start", "gl small acc") + '</g></svg>')
+
+def vis_sides():
+    # the same problem, twice. What changes is not the problem.
+    def solid(cx):
+        return (f'M{cx - 60} 150L{cx - 30} 104L{cx + 30} 104L{cx + 60} 150L{cx + 30} 196L{cx - 30} 196Z')
+    low = lambda cx: f'M{cx - 60} 150L{cx + 60} 150L{cx + 30} 196L{cx - 30} 196Z'
+    up = lambda cx: f'M{cx - 60} 150L{cx - 30} 104L{cx + 30} 104L{cx + 60} 150Z'
+    return (svgopen(640, 300, "The same six-sided solid drawn twice. On the left one dashed sight line reaches it from below and a single face is shaded. On the right three sight lines reach it from below, from the left and from above, and three faces are shaded, one of them clay.",
+                    "El mismo sólido de seis lados dibujado dos veces. A la izquierda, una línea de visión punteada llega desde abajo y una sola cara queda sombreada. A la derecha, tres líneas de visión llegan desde abajo, desde la izquierda y desde arriba, y tres caras quedan sombreadas, una de ellas de arcilla.")
+            + f'<g class="st1"><path class="ln dr" pathLength="1" d="{solid(180)}"/><path class="ln dr" pathLength="1" d="{solid(462)}"/>'
+            + lab("the same problem", "el mismo problema", 320, 254) + '</g>'
+            + f'<g class="st2"><path class="fv" d="{low(180)}"/><path class="lt dash" d="M180 268V202"/>'
+            + lab("depleted", "agotada", 180, 288) + '</g>'
+            + f'<g class="st3"><path class="fv" d="{low(462)}"/><path class="fv" d="{up(462)}"/>'
+              f'<path class="fc" d="M{462 + 60} 150L{462 + 30} 104L{462 + 30} 196Z"/>'
+              '<path class="lt dash" d="M462 268V202"/><path class="lt dash" d="M336 128H396"/><path class="lt dash" d="M572 74L528 112"/>'
+            + lab("rested", "descansada", 462, 288, "middle", "gl small acc") + '</g></svg>')
+
 JVISUALS = {
     "on-learning-to-sit-still": (vis_line, "400,900,900", 0),
     "a-subdivision-begins-as-one-shape": (vis_subdivision, "500,1000,1000,1000,1000,1000,1000,1200", 1),
@@ -1089,6 +1241,12 @@ JVISUALS = {
     "made-of-concrete": (vis_pressure, "500,1200,1200", 1),
     "two-engineers-same-degree": (vis_twobars, "500,1200,1200", 0),
     "you-just-divide-up-land": (vis_plat, "500,1100,1300", 2),
+    "demand-three-years-ago": (vis_lag, "500,1200,1300", 3),
+    "the-right-to-build-is-made-at-a-counter": (vis_counter, "500,1200,1300", 2),
+    "the-buyers-seat-on-day-one": (vis_dayone, "500,1300,1200", 1),
+    "saving-and-standing-still": (vis_compound, "500,1200,1200", 4),
+    "not-everyone-wants-to-be-lifted": (vis_energy, "500,1200,1200", 2),
+    "the-body-goes-first": (vis_sides, "500,1200,1300", 3),
 }
 JPHOTOS = {"notes-on-land": ("assets/photos/turkiye-open-land.jpg", ("Open green land with a fence line and a hill of trees beyond", "Tierra verde abierta con una cerca y una colina de árboles al fondo"),
                              ("Open land", "Tierra abierta"), ("Türkiye · November 2025", "Türkiye · noviembre 2025"), 0)}

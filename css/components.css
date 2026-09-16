@@ -651,6 +651,16 @@
   .pfig.armed .n2{opacity:0;transition:opacity 700ms var(--ease-out);}
   .pfig.armed.s3 .n2{opacity:1;}
   @media (max-width:820px){ .pgrid{grid-template-columns:1fr;gap:var(--s-32);} }
+  /* reading: the same page twice — what the first pass caught, and what the second one did */
+  .pfig .rdline{stroke:var(--on-verde);opacity:.45;}
+  .pfig .rdmark{stroke:var(--laton-on-verde);stroke-width:2.4;}
+  .pfig.armed .rdline{opacity:0;transition:opacity 500ms var(--ease-out) calc(var(--i,0) * 40ms);}
+  .pfig.armed.s1 .rdline{opacity:.45;}
+  .pfig.armed .rdmark{stroke-dashoffset:1;transition:stroke-dashoffset 700ms var(--ease-out) calc(var(--i,0) * 130ms);}
+  .pfig.armed.s2 .rdmark.first{stroke-dashoffset:0;}
+  .pfig.armed.s3 .rdmark.second{stroke-dashoffset:0;}
+  /* writing: the strike and what survives it reuse the translation grammar; .mean has to reach a path too */
+  .pfig path.mean{stroke:var(--laton-on-verde);stroke-width:1.6;}
   @media (max-width:520px){ .pword{font-size:84px;} }
   @media (prefers-reduced-motion:reduce){ .pfig *{transition:none!important;} }
 
