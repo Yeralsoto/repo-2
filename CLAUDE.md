@@ -235,10 +235,12 @@ The Days = memory only · The Aerodrome owns the thesis experience. Recurring mo
   "Not a diagram of one", runway/aircraft/pavement/drainage/movement, "one of the most debated projects in our
   cohort" — her recollection, not an institutional claim) with a small paper airplane that crosses once (`.mplane`);
   the three-name index leans in while its part is read (`data-ix`).
-- **About timeline**: milestone chapters, not a scrub. `TIMING` in motion.js; wheel accumulator + lock + cooldown +
-  quiet gap on wide fine-pointer screens (one gesture = one chapter, backwards too); jumps resolve to the finished
-  state; phones/narrow windows turn chapters automatically while in view; reduced motion relocates. A quiet
-  `.scroll-cue` under the first composition, gone once scrolling starts.
+- **About timeline** (her note, 2026-09-16 — the wheel lock stopped her scrolling on the computer): driven by the
+  page scroll on every device. As the timeline crosses about 60% of the screen the plane flies every leg in order
+  (each line draws, then the plane flies it and levels; the destination comes into focus as it lands), then the
+  faint line past today dissolves. Never touch the wheel, never lock the page; scrolling back flies back. Reduced
+  motion: all legs drawn, the plane at the last milestone. A quiet `.scroll-cue` under the first composition, gone
+  once scrolling starts.
 - **Inside My Mind 05**: System leverage (pipeline drawing) and Creative leverage (two real examples — The Days and
   the About airplane — idea → behaviour → code read from motion.js by `real_code(want)` → experience), then the boundary.
 - **The Practice**: 8 studies — underwriting (questions around one project), multifamily read four ways, finance and

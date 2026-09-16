@@ -25,27 +25,19 @@
     [].forEach.call(watch, function (e) { io.observe(e); });
   }
 
-  /* ABOUT — the paper airplane (her iteration, 2026-09-14): milestones are chapters, not a scrub.
-     The current milestone is in focus and the plane is completely still. One intentional scroll gesture
-     turns one chapter: the destination comes into focus, its leg draws, the plane flies it quickly
-     (≈1.2 s in all), lands, levels, and is still again. Scrolling back flies back. While the timeline
-     sits in the middle of the screen, wheel gestures turn chapters instead of moving the page; at either
-     end the page scrolls on. Trackpads send long bursts of wheel events, so: an accumulated threshold,
-     a lock while flying, a short cooldown, and a quiet gap before the next gesture counts — one swipe,
-     one chapter. Jumps (scrollbar, links, reloading lower down) resolve straight to the right finished
-     state; nothing replays. Phones: no hijacking — in view, the chapters turn by themselves, one at a
-     time, and the page stays scrollable. Reduced motion: the route appears and the plane relocates. After
-     the last milestone the route continues faintly and dissolves: no destination, no label. */
+  /* ABOUT — the paper airplane. Her note (2026-09-16): the page must never stop her scrolling. The flight is
+     driven by the scroll, on every device: as the timeline crosses the screen — about one scroll gesture — the
+     plane flies every leg in order, each destination coming into focus as it lands. Nothing takes over the
+     wheel; scrolling back flies it back; a jump lands on the right finished state. Reduced motion: the whole
+     route is drawn and the plane waits at the last milestone. After the last milestone the route continues
+     faintly and dissolves: no destination, no label. */
   (function () {
     var flight = document.querySelector('.tl-flight');
     if (!flight) return;
     var box = flight.querySelector('.tl-scroll'), tl = box.querySelector('.tl'), svg = box.querySelector('.tl-route');
     var legsG = svg.querySelector('.tl-legs'), future = svg.querySelector('.tl-future'), plane = svg.querySelector('.tl-plane');
     var steps = [].slice.call(tl.querySelectorAll('.tl-step')), n = steps.length;
-    // her note (2026-09-15): slower, so the flight can actually be watched — focus + draw → pause → fly → level
-    var TIMING = { draw: 560, pause: 160, flyMin: 980, flyMax: 1400, settle: 200, cool: 460 };
-    var st = { active: 0, busy: false, rest: 0, acc: 0, lastWheel: 0, needGap: false, coolUntil: 0 };
-    var legs = [], pts = [];
+    var legs = [], pts = [], last = -1;
     var easeOut = function (x) { return 1 - Math.pow(1 - x, 3); };
     var easeInOut = function (x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
     for (var i = 0; i < n - 1; i++) {
@@ -63,130 +55,65 @@
         var a = pts[k], b = pts[k + 1], lift = Math.min(30, (b[0] - a[0]) * 0.18);
         l.setAttribute('d', 'M' + a[0] + ' ' + y + 'Q' + (a[0] + b[0]) / 2 + ' ' + (y - lift * 2) + ' ' + b[0] + ' ' + y);
       });
-      var last = pts[n - 1];
-      future.setAttribute('d', 'M' + last[0] + ' ' + y + 'q70 -30 160 -22');
+      var end = pts[n - 1];
+      future.setAttribute('d', 'M' + end[0] + ' ' + y + 'q70 -30 160 -22');
+      last = -1;
     }
     function put(x, y, deg) { plane.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + (y - 10).toFixed(1) + ') rotate(' + deg.toFixed(1) + ')'); }
     function follow(x) {   // a phone's strip keeps the plane in view
-      if (x < box.scrollLeft + 40 || x > box.scrollLeft + box.clientWidth - 60) box.scrollLeft = Math.max(0, x - box.clientWidth * 0.5);
+      if (box.scrollWidth <= box.clientWidth + 2) return;
+      box.scrollLeft = Math.max(0, x - box.clientWidth * 0.5);
     }
     // focus: the destination is primary, where she came from stays legible, what follows stays quiet
-    function focus(i) { steps.forEach(function (s, k) { s.classList.toggle('cur', k === i); s.classList.toggle('past', k < i); }); }
-    function settleAt(i) {
-      st.active = i;
-      focus(i);
-      legs.forEach(function (l, k) { l.style.strokeDashoffset = k < i ? '0' : '1'; });
-      if (i < n - 1) { future.style.opacity = '0'; future.style.strokeDashoffset = '1'; }
-      plane.style.opacity = '';
-      put(pts[i][0], pts[i][1], st.rest);
-      follow(pts[i][0]);
+    function focus(c) { steps.forEach(function (s, k) { s.classList.toggle('cur', k === c); s.classList.toggle('past', k < c); }); }
+
+    // pos runs 0 … n-1 across the legs, then a little further for the dissolving line past today
+    var TAIL = 0.8;
+    function render(pos) {
+      if (Math.abs(pos - last) < 0.0005) return;
+      last = pos;
+      var legPos = Math.min(pos, n - 1), i = Math.min(n - 2, Math.floor(legPos)), f = legPos - i;
+      if (legPos >= n - 1) { i = n - 2; f = 1; }
+      // each leg: its line draws first (information), then the plane flies it and levels as it lands
+      var draw = easeOut(clamp01(f / 0.35)), fly = easeInOut(clamp01((f - 0.2) / 0.75));
+      legs.forEach(function (l, k) { l.style.strokeDashoffset = k < i ? '0' : k > i ? '1' : (1 - draw).toFixed(3); });
+      var L = legs[i].getTotalLength(), d = L * fly, p = legs[i].getPointAtLength(d);
+      var a = legs[i].getPointAtLength(Math.max(0, d - 1.5)), b = legs[i].getPointAtLength(Math.min(L, d + 1.5));
+      var nose = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+      var level = fly <= 0 || fly >= 1 ? 1 : clamp01(Math.min(fly, 1 - fly) < 0.12 ? 1 - Math.min(fly, 1 - fly) / 0.12 : 0);
+      put(p.x, p.y, nose * (1 - level));
+      follow(p.x);
+      focus(fly >= 0.85 ? i + 1 : i);
+      // past today: the route goes on a little, faintly, and dissolves
+      var t = clamp01((pos - (n - 1)) / TAIL);
+      future.style.strokeDashoffset = (1 - easeOut(clamp01(t / 0.5))).toFixed(3);
+      future.style.opacity = t <= 0 ? '0' : (0.7 * (1 - clamp01((t - 0.45) / 0.55))).toFixed(3);
     }
-    function dissolveFuture(instant) {
-      if (instant) { future.style.strokeDashoffset = '0'; future.style.opacity = '0'; return; }
-      var t0 = performance.now();
-      (function f(now) {
-        if (st.active !== n - 1 || st.busy) return;
-        var t = now - t0;
-        future.style.strokeDashoffset = (1 - easeOut(clamp01(t / 900))).toFixed(3);
-        future.style.opacity = (0.7 * (1 - easeOut(clamp01((t - 700) / 1800)))).toFixed(3);
-        if (t < 2500) requestAnimationFrame(f);
-      })(t0);
-    }
-    // one chapter: from the active milestone to an adjacent one
-    function go(to) {
-      var from = st.active, fwd = to > from, leg = legs[fwd ? from : to], L = leg.getTotalLength(), T = TIMING;
-      var fly = Math.round(Math.min(T.flyMax, T.flyMin + L * 0.5)), flyAt = fwd ? T.draw + T.pause : 80, end = flyAt + fly + T.settle;
-      var t0 = performance.now(), rest = fwd ? 0 : 180;
-      st.busy = true;
-      focus(to);
-      if (from === n - 1) { future.style.opacity = '0'; future.style.strokeDashoffset = '1'; }
-      (function frame(now) {
-        var t = now - t0;
-        if (reduce) {   // the route appears; the plane relocates
-          if (fwd) leg.style.strokeDashoffset = '0'; else leg.style.strokeDashoffset = '1';
-          var k = clamp01(t / 360);
-          plane.style.opacity = (k < 0.5 ? 1 - k * 2 : (k - 0.5) * 2).toFixed(2);
-          if (k >= 0.5) put(pts[to][0], pts[to][1], 0);
-          if (k < 1) { requestAnimationFrame(frame); return; }
-        } else {
-          if (fwd) leg.style.strokeDashoffset = (1 - easeOut(clamp01(t / T.draw))).toFixed(3);   // information first, then movement
-          if (t >= flyAt) {
-            var e = easeInOut(clamp01((t - flyAt) / fly)), d = fwd ? L * e : L * (1 - e), p = leg.getPointAtLength(d);
-            var a = leg.getPointAtLength(Math.max(0, d - 1.5)), b = leg.getPointAtLength(Math.min(L, d + 1.5));
-            var nose = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI + (fwd ? 0 : 180);
-            put(p.x, p.y, nose + (rest - nose) * easeOut(clamp01((t - flyAt - fly) / T.settle)));   // on landing, the nose levels
-            if (!fwd) leg.style.strokeDashoffset = (1 - d / L).toFixed(3);                          // flying back, the leg folds away behind it
-            follow(p.x);
-          }
-          if (t < end) { requestAnimationFrame(frame); return; }
-        }
-        st.busy = false;
-        st.rest = reduce ? 0 : rest;
-        settleAt(to);
-        if (to === n - 1) dissolveFuture(false);
-        st.coolUntil = performance.now() + T.cool;
-        st.needGap = true;
-      })(t0);
+    // the scroll that carries it: from the timeline entering the lower part of the screen to reaching its upper part
+    function progress() {
+      var r = box.getBoundingClientRect(), vh = window.innerHeight;
+      var k = clamp01((vh * 0.9 - r.top) / (vh * 0.6));
+      return k * (n - 1 + TAIL);
     }
 
     geometry();
-    if (!('IntersectionObserver' in window)) { settleAt(n - 1); future.style.strokeDashoffset = '0'; future.style.opacity = '0.35'; return; }
     flight.classList.add('armed');
-    settleAt(0);
-    // text first: the route is laid over the milestones as they actually wrap — again once fonts load and whenever the strip resizes
-    var relayout = function () { geometry(); if (!st.busy) settleAt(st.active); };
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
-    if ('ResizeObserver' in window) new ResizeObserver(relayout).observe(tl);
-
-    // jumps resolve to the finished state that belongs there
-    function resolve() {
-      if (st.busy) return;
-      var r = box.getBoundingClientRect(), vh = window.innerHeight;
-      if (r.bottom < 0 && st.active !== n - 1) { st.rest = 0; settleAt(n - 1); dissolveFuture(true); }
-      else if (r.top > vh && st.active !== 0) { st.rest = 0; settleAt(0); }
+    if (reduce) {   // everything drawn, the plane at today
+      render(n - 1);
+      future.style.opacity = '0';
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { geometry(); render(n - 1); future.style.opacity = '0'; });
+      return;
     }
     var queued = false;
-    window.addEventListener('scroll', function () { if (!queued) { queued = true; requestAnimationFrame(function () { queued = false; resolve(); }); } }, { passive: true });
-    window.addEventListener('resize', function () { geometry(); if (!st.busy) settleAt(st.active); });
-    resolve();
-
-    var desktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-    var wide = function () { return desktop && window.innerWidth > 820; };
-    {
-      // phones, touch and narrow windows: no hijacking; in view, the chapters turn by themselves, one at a time
-      var inView = false;
-      var chain = function () {
-        if (wide() || !inView || st.busy || st.active >= n - 1) return;
-        go(st.active + 1);
-        var wait = function () { if (st.busy) { requestAnimationFrame(wait); return; } var t0 = performance.now(); (function h(now) { if (now - t0 < 1150) { requestAnimationFrame(h); return; } chain(); })(t0); };
-        requestAnimationFrame(wait);
-      };
-      new IntersectionObserver(function (rows) { inView = rows[0].isIntersecting; if (inView) chain(); }, { threshold: 0.6 }).observe(box);
-    }
-    if (desktop) {
-      var engaged = function () {
-        var r = box.getBoundingClientRect(), vh = window.innerHeight;
-        return window.innerWidth > 820 && r.top >= vh * 0.06 && r.bottom <= vh * 0.96;
-      };
-      window.addEventListener('wheel', function (e) {
-        if (Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.ctrlKey || !engaged()) { st.acc = 0; return; }
-        var now = performance.now(), dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY, gap = now - st.lastWheel;
-        st.lastWheel = now;
-        if (st.busy || now < st.coolUntil) { e.preventDefault(); st.acc = 0; return; }
-        if (st.needGap) {   // the tail of the gesture that turned the last chapter
-          if (gap < 140) { e.preventDefault(); return; }
-          st.needGap = false;
-        }
-        var to = st.active + (dy > 0 ? 1 : -1);
-        if (to < 0 || to > n - 1) { st.acc = 0; return; }   // at either end the page scrolls on
-        e.preventDefault();
-        if (gap > 220 || (st.acc && (st.acc > 0) !== (dy > 0))) st.acc = 0;
-        st.acc += dy;
-        if (Math.abs(st.acc) < 48) return;   // tiny movements never launch the plane
-        st.acc = 0;
-        go(to);
-      }, { passive: false });
-    }
+    function tick() { queued = false; render(progress()); }
+    function queue() { if (!queued) { queued = true; requestAnimationFrame(tick); } }
+    window.addEventListener('scroll', queue, { passive: true });
+    window.addEventListener('resize', function () { geometry(); queue(); });
+    // text first: the route is laid over the milestones as they actually wrap — again once fonts load and whenever the strip resizes
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { geometry(); tick(); });
+    if ('ResizeObserver' in window) new ResizeObserver(function () { geometry(); queue(); }).observe(tl);
+    ticks.push(tick);
+    tick();
   })();
 
   /* ABOUT ME (Home) — a margin note comes alive: as the aerodrome lines scroll up, a small paper airplane

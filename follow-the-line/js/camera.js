@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { SITE_CENTER, GRADE } from './world.js';
 import { WORK, onStory, T } from './config.js';
-import { PUBLIC } from './layout.js';
+import { PUBLIC, BULB_ROW } from './layout.js';
 import { COMP_AT } from './story.js';
 import { readyLot } from './build.js';
 
@@ -19,7 +19,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 // height, 12px from the sides. The picture is only scaled and moved in two dimensions (zoom and a view
 // offset), so the perspective, and every word anchored to the land, stays exactly as authored.
 const v3 = new THREE.Vector3(), vv = new THREE.Vector3();
-function fitOf(camera, pts, W, H, top) {
+function fitOf(camera, pts, W, H, top, box) {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, depth = Infinity;
   for (const q of pts) {
     // how far in front of the camera the nearest point is: the caller fades a set out continuously before
@@ -31,7 +31,8 @@ function fitOf(camera, pts, W, H, top) {
     const x = (v3.x + 1) * 0.5 * W, y = (1 - v3.y) * 0.5 * H;
     x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
   }
-  const m = 8, L = 12 + m, R = W - 12 - m, Tp = top + m, B = H * 0.58 - m;
+  // (box: the room on a wide screen, as [left, top, right, bottom]; phones keep the band below)
+  const m = 8, [L, Tp, R, B] = box || [12 + m, top + m, W - 12 - m, H * 0.58 - m];
   const s = Math.min(1, (R - L) / Math.max(1, x1 - x0), (B - Tp) / Math.max(1, y1 - y0));
   return { s, depth, box: [x0, y0, x1, y1], band: [L, Tp, R, B] };
 }
@@ -173,11 +174,46 @@ export function makeCamera(L, houses) {
   // while a milestone row or the scenario words ride the top of the band, the land keeps that strip clear
   const ROOM = S ? [S.rulesNotes[0], S.rulesNotes[0] + 0.006, S.planOut[0], S.planOut[1]] : null;
 
-  function portraitFit(camera, p, aspect, H, dist) {
+  // Wide screens inside /work/ (her ask, 2026-09-16): the whole subdivision — parcel, every lot, the road and the
+  // cul-de-sac — stays in the room the page leaves: under its bar, right of its words, above its keep-scrolling
+  // tab. The room does not follow the words from beat to beat, so the land never jumps when a line changes.
+  const WHOLE = [
+    ...LAND, ...L.lots.flatMap((l) => l.poly),
+    ...Array.from({ length: 32 }, (_, i) => [L.C[0] + Math.cos((i / 32) * 6.2832) * BULB_ROW, L.C[1] + Math.sin((i / 32) * 6.2832) * BULB_ROW]),
+    ...Array.from({ length: 40 }, (_, i) => L.spine.at((L.S * i) / 39).p),
+  ];
+  function wideFit(camera, p, aspect, H, dist, host) {
+    camera.updateMatrixWorld();
+    const W = aspect * H, m = 16;
+    const box = [Math.max(12, host.wordsRight) + m, host.top + m, W - 12 - m, Math.min(H - 12, host.moreTop) - m];
+    // while the page's centred closing line is up ("It is easier to show you."), the room ends above it
+    if (host.end) {
+      const e = host.end, ke = win4([e.at - 0.008, e.at, e.out, e.out + 0.008], p);
+      box[3] = lerp(box[3], Math.min(box[3], e.t - m), ke);
+    }
+    if (box[2] - box[0] < 80 || box[3] - box[1] < 80) return;
+    // the whole subdivision until the camera is down on the one ready lot; that lot in its close-up
+    const kl = (1 - smooth(150, 230, dist)) * win4([HERO[0] - 0.01, HERO[0], HERO[3], HERO[3] + 0.01], p);
+    const kland = (1 - kl) * smooth(150, 260, dist);
+    const sets = [[WHOLE, kland], [LOTFIT, kl]]
+      .filter((e) => e[1] > 0.001)
+      .map(([pts, k]) => { const f = fitOf(camera, pts, W, H, 0, box); return f ? { f, k: k * smooth(dist * 0.25, dist * 0.5, f.depth) } : null; })
+      .filter((e) => e && e.k > 0.0005);
+    if (!sets.length) return;
+    const s = 1 + sets.reduce((acc, e) => acc + (e.f.s - 1) * e.k, 0);
+    let dx = 0, dy = 0;
+    for (const e of sets) { const d = shiftOf(e.f, s, W, H); dx += d[0] * e.k; dy += d[1] * e.k; }
+    camera.zoom = s;
+    camera.setViewOffset(W, H, -dx, -dy, W, H);
+    camera.updateProjectionMatrix();
+  }
+
+  function portraitFit(camera, p, aspect, H, dist, host) {
     camera.zoom = 1;
     camera.clearViewOffset();
     camera.updateProjectionMatrix();
-    if (!WORK || !H || aspect >= 1) return;
+    if (!WORK || !H) return;
+    if (aspect >= 1) { if (host) wideFit(camera, p, aspect, H, dist, host); return; }
     const w = 1 - smooth(0.722, 0.73, p);
     if (w < 0.001) return;
     camera.updateMatrixWorld();
@@ -207,7 +243,7 @@ export function makeCamera(L, houses) {
     camera.updateProjectionMatrix();
   }
 
-  function update(camera, p, aspect, H) {
+  function update(camera, p, aspect, H, host) {
     const tx = ch[0](p), tz = ch[1](p), ty = ch[2](p), az = ch[3](p) * D2R, el = ch[4](p) * D2R;
     let dist = Math.exp(logD(p));
     // narrow screens: wide shots step back so the whole community stays in frame; close-ups stay close
@@ -226,7 +262,7 @@ export function makeCamera(L, houses) {
     camera.lookAt(lx, ty, lz);
     camera.near = Math.max(0.5, dist * 0.02);
     camera.far = 12000;
-    portraitFit(camera, p, aspect, H, dist);
+    portraitFit(camera, p, aspect, H, dist, host);
     return { x: tx, z: tz, dist, radius: Math.min(340, Math.max(55, dist * 0.62)) };
   }
   return { update };

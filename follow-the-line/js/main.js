@@ -118,6 +118,37 @@ function init(reduced) {
   }
 
   let W = 1, H = 1, dirty = true;
+  // The Work on a wide screen, inside its page: the page's sticky bar covers the top of the film, its words sit
+  // bottom left and its keep-scrolling tab bottom right. The page is the same origin, so the film reads where
+  // they are (as they sit once the stage is pinned under the bar) and camera.js keeps the land in the room left.
+  let host = null;
+  const measureHost = () => {
+    host = null;
+    dirty = true;
+    if (!WORK || window.parent === window) return;
+    try {
+      const doc = window.parent.document, fe = window.frameElement;
+      const stage = fe && fe.closest('.ws-stage'), nav = doc.querySelector('nav.topbar');
+      if (!stage || !nav) return;
+      const st = stage.getBoundingClientRect(), more = stage.querySelector('.ws-more');
+      let wordsRight = 0;
+      for (const g of stage.querySelectorAll('.ws-group:not(.end):not(.proof)')) {
+        const r = g.getBoundingClientRect();
+        if (r.width) wordsRight = Math.max(wordsRight, r.right - st.left);
+      }
+      const mr = more ? more.getBoundingClientRect() : null;
+      host = { top: nav.getBoundingClientRect().height, wordsRight, moreTop: mr && mr.height ? mr.top - st.top : st.height, end: null };
+      // the page's closing line sits centred across the film for its beat
+      const endLine = stage.querySelector('.ws-group.end .ws-line');
+      if (endLine) {
+        const r = endLine.getBoundingClientRect();
+        // (a line waiting for its beat is drawn 16px lower: .ws-line's translateY in the page's CSS)
+        const drop = endLine.classList.contains('on') ? 0 : parseFloat(window.parent.getComputedStyle(endLine).transform.split(',')[5]) || 0;
+        if (r.height) host.end = { t: r.top - st.top - drop, at: +endLine.dataset.at, out: +endLine.dataset.out };
+      }
+    } catch { host = null; }
+  };
+  try { window.parent.document.fonts?.ready.then(measureHost); } catch { /* not embedded in a same-origin page */ }
   const resize = () => {
     const r = stage.getBoundingClientRect();
     W = Math.max(1, Math.round(r.width)); H = Math.max(1, Math.round(r.height));
@@ -125,7 +156,7 @@ function init(reduced) {
     camera.aspect = W / H;
     overlay.resize(W, H);
     if (story) story.resize(W, H);
-    dirty = true;
+    measureHost();
   };
   new ResizeObserver(resize).observe(stage);
   resize();
@@ -157,7 +188,7 @@ function init(reduced) {
 
   // Embedded: progress arrives from the host page, same origin only.
   const embed = document.documentElement.classList.contains('ftl-embed');
-  let embedP = 0, embedStill = false;
+  let embedP = 0, embedStill = false, lastLang = 'en';
   if (embed) {
     addEventListener('message', (e) => {
       if (e.origin !== location.origin || !e.data || e.data.type !== 'ftl:p') return;
@@ -167,6 +198,8 @@ function init(reduced) {
         story.setLang(e.data.lang);
         lastLine.innerHTML = (e.data.lang === 'es' ? CLOSING.es : CLOSING.en) + '<span class="stop">.</span>';
         if (creditEl) creditEl.textContent = e.data.lang === 'es' ? CREDIT.es : CREDIT.en;
+        // the page's words change width with the language
+        if (e.data.lang !== lastLang) { lastLang = e.data.lang; measureHost(); }
       }
       dirty = true;
     });
@@ -204,7 +237,7 @@ function init(reduced) {
 
   function render(p) {
     U.uP.value = p;
-    const focus = cam.update(camera, p, W / H, H);
+    const focus = cam.update(camera, p, W / H, H, host);
     atmo.update(p, focus);
     scene.fog.near = Math.max(600, focus.dist * 1.2);
     scene.fog.far = Math.max(2400, focus.dist * 4.2);

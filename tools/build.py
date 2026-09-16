@@ -844,7 +844,7 @@ def practice():
                    "Los leo como leo un condado antes de un proyecto: población, ingreso, migración, infraestructura, regulación, la moneda y lo que el precio ya supone."),
                   ("I am not a fund manager. I learn a market by studying it, and by taking part in it.", "No soy gestora de fondos. Aprendo un mercado estudiándolo, y participando en él.")],
                  "mlines psouth"))
-    code = (f'<figure class="pcode" data-reveal><pre class="code"><code>{html.escape(js_line("var TIMING = { draw:"))}</code></pre>'
+    code = (f'<figure class="pcode" data-reveal><pre class="code"><code>{html.escape(js_line("var draw = easeOut("))}</code></pre>'
             f'{tx("figcaption", "js/motion.js · the paper airplane on About", "js/motion.js · el avión de papel en Sobre mí", cls="caps codesrc")}</figure>')
     sections = (
         psection(0, ("Underwriting", "Análisis de inversiones"),
@@ -1941,11 +1941,11 @@ AI_EXAMPLES = [
      "code": None, "src": ("js/motion.js · prints()", "js/motion.js · prints()")},
     {"num": "02", "name": ("The paper airplane on About", "El avión de papel en Sobre mí"),
      "idea": [("The airplane waits at Colombia.", "El avión espera en Colombia."), ("The next route appears first.", "La siguiente ruta aparece primero."),
-              ("Then it flies.", "Luego vuela."), ("Then it stops completely.", "Luego se detiene por completo.")],
+              ("Then it flies.", "Luego vuela."), ("The scroll carries it. It never takes the scroll.", "El scroll lo lleva. Nunca se queda con el scroll.")],
      "behaviour": [("Milestone · where it waits", "Hito · donde espera"), ("Route · drawn before it moves", "Ruta · se dibuja antes de moverse"),
                    ("Motion · along the arc, nose first", "Movimiento · por el arco, la nariz primero"), ("Arrival · the nose levels", "Llegada · la nariz se nivela"),
-                   ("Still · until the next chapter", "Quieto · hasta el siguiente capítulo")],
-     "code": ["var TIMING = { draw:", "if (fwd) leg.style.strokeDashoffset = (1 -", "var e = easeInOut(clamp01((t - flyAt)", "put(p.x, p.y, nose", "st.busy = false;"],
+                   ("Scroll · it follows the reader, never the other way", "Scroll · sigue al lector, nunca al revés")],
+     "code": ["var k = clamp01((vh * 0.9 - r.top)", "var draw = easeOut(clamp01(f / 0.35))", "legs.forEach(function (l, k) { l.style.strokeDashoffset", "put(p.x, p.y, nose", "focus(fly >= 0.85"],
      "src": ("js/motion.js · the About timeline", "js/motion.js · la línea de tiempo de Sobre mí")},
 ]
 
