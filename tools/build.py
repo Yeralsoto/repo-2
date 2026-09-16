@@ -913,7 +913,7 @@ def practice():
                      "Todo esto es un cuaderno. No tengo prisa por llamarlo de otra manera.")])
     )
     tcaps = ('<ol class="tcaps">' + "".join(tx("li", en, es, cls=f"c{k + 1}") for k, (en, es) in enumerate(TOWER_STAGES)) + '</ol>')
-    tower = (f'<figure class="mfig pfig tower" data-seq="300,900,1400,1200,1000,900,900" data-span="1.2">{fig_tower()}{tcaps}'
+    tower = (f'<figure class="mfig pfig tower" data-seq="300,900,1400,1200,1000,900,900" data-span="0.55">{fig_tower()}{tcaps}'
              + label(("Study · Dubai · 828 m", "Estudio · Dubái · 828 m"), ("Burj Khalifa", "Burj Khalifa"), reveal=False)
              + tx("p", "It stands on land that was desert. The land did not change; someone saw what it could hold.",
                   "Se levanta sobre una tierra que era desierto. La tierra no cambió; alguien vio lo que podía sostener.", cls="tower-line")
