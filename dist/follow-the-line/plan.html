@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Follow the Line — plan check</title>
+<style>
+  body{margin:0;background:#F5EFE4;color:#16352A;font:14px/1.5 Jost,system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:24px;padding:24px}
+  canvas{background:#EDE5D7;max-width:100%;height:auto}
+  pre{font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap;max-width:560px}
+  .ok{color:#1E4638}.bad{color:#9E5031}
+</style>
+</head>
+<body>
+<canvas id="c" width="900" height="1030"></canvas>
+<pre id="out">checking…</pre>
+<script type="module">
+import { buildLayout, rowPolygons, pavementPolygons, PUBLIC } from './js/layout.js';
+import { validate } from './js/validate.js';
+const L = buildLayout();
+const res = validate(L);
+window.__plan = { L, res };
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+const S = 2.1, OX = 430, OZ = 600;
+const P = ([x, z]) => [OX + x * S, OZ + z * S];
+function poly(pts, fill, stroke, w = 1) {
+  g.beginPath(); pts.forEach((p, i) => { const [a, b] = P(p); i ? g.lineTo(a, b) : g.moveTo(a, b); }); g.closePath();
+  if (fill) { g.fillStyle = fill; g.fill(); }
+  if (stroke) { g.strokeStyle = stroke; g.lineWidth = w; g.stroke(); }
+}
+function line(pts, stroke, w) { g.beginPath(); pts.forEach((p, i) => { const [a, b] = P(p); i ? g.lineTo(a, b) : g.moveTo(a, b); }); g.strokeStyle = stroke; g.lineWidth = w; g.stroke(); }
+// public road
+const pub = []; for (let x = -210; x <= 210; x += 10) pub.push([x, PUBLIC.z(x)]);
+line(pub, '#bdb3a2', PUBLIC.half * 2 * S); line(pub, '#6e6a62', PUBLIC.pave * 2 * S);
+poly(L.PARCEL, null, '#16352A', 2);
+poly(L.wetland, 'rgba(95,120,110,.25)', null);
+poly(L.pond, '#8FA6A2', '#5d7a75');
+const rp = rowPolygons(L); [rp.strip, rp.bulb, ...rp.flares].forEach((p) => poly(p, '#d6ccb8', null));
+const pp = pavementPolygons(L); [pp.strip, pp.bulb].forEach((p) => poly(p, '#6e6a62', null));
+for (const lot of L.lots) {
+  const bad = res.perLot[lot.id].fails.length;
+  poly(lot.poly, lot.id === L.hero ? 'rgba(175,95,62,.18)' : 'rgba(30,70,56,.08)', bad ? '#c0392b' : '#8F7546', bad ? 2.5 : 1);
+  line(lot.front, '#AF5F3E', 2.5);
+  if (lot.drive) { line(lot.drive.apron, '#cfc6b6', lot.drive.width * S); line(lot.drive.path, '#b9b1a3', lot.drive.width * S); }
+  if (lot.house) lot.house.footprint.forEach((r, i) => poly(r, i === lot.house.footprint.length - 1 ? '#d9cfbd' : '#16352A', null));
+  const [a, b] = P(lot.toWorld(0, lot.depth * 0.75));
+  g.fillStyle = bad ? '#c0392b' : '#16352A'; g.font = '11px Jost, sans-serif'; g.fillText(lot.id + 1, a - 5, b);
+}
+const out = document.getElementById('out');
+out.innerHTML = res.checks.map(([k, ok, d]) => `<span class="${ok ? 'ok' : 'bad'}">${ok ? 'PASS' : 'FAIL'}</span>  ${k} ${d}`).join('\n') +
+  '\n\n' + res.perLot.map((r) => `lot ${String(r.id + 1).padStart(2)} ${r.side} ${r.area} m²  frontage ${r.frontage} m  front setback ${r.frontSetback} m  edge ${r.edgeSetback} m  drive ${r.driveLen} m  ${r.fails.length ? '<span class="bad">' + r.fails.join('; ') + '</span>' : '<span class="ok">ok</span>'}`).join('\n');
+</script>
+</body>
+</html>

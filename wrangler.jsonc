@@ -1,0 +1,11 @@
+// Cloudflare deploys the live site from here on every push to main (her ask, 2026-09-16).
+// Only dist/ is published — the notes, the source and the drafts in this repo never are.
+// Rebuild dist before committing:  python3 tools/build.py && python3 tools/publish.py
+{
+  "name": "yeraldin",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  }
+}

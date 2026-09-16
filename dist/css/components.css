@@ -1,0 +1,1342 @@
+/* COMPONENTS — world, nav, index, beats, labels, morph, reel, drawers, footer.
+   Yeraldin — see CLAUDE.md before editing. */
+
+/* ---------- WORLD — a Verde room ----------
+   Papel is the ground on every page; Verde is each page's Turn and the index.
+   Inside .world the text tokens are remapped to their on-Verde equivalents,
+   so Arcilla cannot resolve on Verde and the focus ring becomes Latón.
+   Measured on --verde #1E4638: on-verde 9.23:1 · 80% mix 6.55:1 ·
+   70% mix 5.43:1 · laton-on-verde 4.86:1 (rules and display 25px+ only).
+   Dark theme (#24503F): on-verde 8.00:1, 12px label floor 4.83:1. */
+.world{
+    background:var(--verde);
+    color:var(--on-verde);
+    --tinta:var(--on-verde);
+    --tinta-soft:color-mix(in srgb, var(--on-verde) 80%, var(--verde));
+    --tinta-mute:color-mix(in srgb, var(--on-verde) 70%, var(--verde));
+    --papel-2:var(--verde-deep);
+    --rule:color-mix(in srgb, var(--laton-on-verde) 28%, transparent);
+    --rule-strong:var(--laton-on-verde);
+    --laton:var(--laton-on-verde);
+    --arcilla:var(--laton-on-verde);
+    --arcilla-text:var(--laton-on-verde);
+    /* The orange that may sit on green: the dark-theme Arcilla from tokens.css.
+       #D08A64 on --verde 3.77:1 · on --verde-deep 4.75:1 · dark-theme verde 3.27:1
+       — display 25px+ and non-text only (AA large / non-text = 3:1).
+       #DB9873 (dark-theme arcilla-text) on --verde-deep 5.54:1 — 12px labels OK.
+       Base #AF5F3E stays off green entirely (2.28:1). */
+    --clay-on-verde:#D08A64;
+    --clay-text-on-verde:#DB9873;
+  }
+  body::after{
+    content:"";position:fixed;inset:0;z-index:50;pointer-events:none;
+    background-image:var(--grain);opacity:.05;mix-blend-mode:overlay;
+  }
+
+  /* Jost has no prime, so ′ in 6°15′ N is set in Cormorant at the same size */
+  .pr{font-family:"Cormorant Garamond",Georgia,serif;font-weight:400;letter-spacing:0;font-size:1.2em;line-height:0;}
+
+  /* ---------- NAV ---------- */
+  nav.topbar{
+    position:sticky;top:0;z-index:20;
+    background:color-mix(in srgb, var(--papel) 88%, transparent);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--rule);
+  }
+  .world nav.topbar{background:color-mix(in srgb, var(--verde) 84%, transparent);}
+  nav.topbar .bar{max-width:var(--maxw);margin:0 auto;padding:10px 30px;display:flex;align-items:center;justify-content:space-between;gap:20px;}
+  nav.topbar .brand{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-14);letter-spacing:.34em;text-transform:uppercase;text-decoration:none;white-space:nowrap;display:flex;align-items:center;gap:11px;min-height:44px;}
+  nav.topbar ul{display:flex;gap:var(--s-24);align-items:center;list-style:none;margin:0;padding:0;}
+  nav.topbar a.lnk{text-decoration:none;color:var(--tinta-soft);display:inline-flex;align-items:center;min-height:44px;transition:color .18s ease-out;}
+  nav.topbar a.lnk:hover{color:var(--arcilla-text);}
+  nav.topbar .tools{display:flex;align-items:center;gap:var(--s-24);}
+  .js nav.topbar ul.quick{display:none;}
+  @media (max-width:640px){nav.topbar ul{display:none;} nav.topbar .bar{padding:10px 20px;}}
+
+  /* ---------- LANGUAGE + INDEX BUTTON ---------- */
+  .lang{display:none;align-items:center;gap:var(--s-8);}
+  .js .lang{display:inline-flex;}
+  .menub{display:none;}
+  .js .menub{display:inline-flex;}
+  .lang-b,.menub{
+    font-family:"Jost",sans-serif;font-weight:400;font-size:var(--t-12);
+    letter-spacing:.26em;text-transform:uppercase;
+    background:none;border:0;padding:0 var(--s-4);margin:0;cursor:pointer;
+    color:var(--tinta-soft);min-height:44px;align-items:center;transition:color .18s ease-out;
+  }
+  .lang-b{display:inline-flex;}
+  .lang .sep{color:var(--tinta-mute);}
+  .lang-b:hover,.menub:hover,.lang-b.on{color:var(--tinta);}
+  .lang-b.on{border-bottom:1px solid var(--laton);}
+  .menub{gap:10px;}
+  .menub .bars{display:inline-block;width:16px;height:9px;position:relative;}
+  .menub .bars i{position:absolute;left:0;right:0;height:1px;background:currentColor;transition:transform .28s var(--ease-out);}
+  .menub .bars i:first-child{top:0;} .menub .bars i:last-child{bottom:0;}
+  .menub[aria-expanded="true"] .bars i:first-child{transform:translateY(4px) rotate(13deg);}
+  .menub[aria-expanded="true"] .bars i:last-child{transform:translateY(-4px) rotate(-13deg);}
+  /* while the index is open the bar sits on Verde */
+  body.held nav.topbar{background:var(--verde-deep);border-bottom-color:transparent;}
+  body.held nav.topbar,body.held nav.topbar .lang-b,body.held nav.topbar .menub{color:var(--on-verde);}
+  body.held nav.topbar .lang-b.on{border-bottom-color:var(--laton-on-verde);}
+
+  /* ---------- THE INDEX ----------
+     Closed state is visibility, never `hidden` or a rAF-added class:
+     it can't end up invisible but focusable. */
+  .index{
+    position:fixed;inset:0;z-index:19;background:var(--verde-deep);
+    display:flex;overflow-y:auto;align-items:center;align-items:safe center;
+    padding:calc(var(--s-96) + var(--s-8)) 0 var(--s-48);
+    opacity:0;visibility:hidden;
+    transition:opacity .32s var(--ease-out), visibility 0s linear .32s;
+  }
+  .index.on{opacity:1;visibility:visible;transition:opacity .32s var(--ease-out), visibility 0s linear 0s;}
+  .index .wrap{width:100%;}
+  .index .ilabel{color:var(--tinta-mute);margin:0 0 var(--s-16);}
+  .ilist{display:flex;flex-direction:column;}
+  .ilist a{
+    display:grid;grid-template-columns:56px 1fr auto;gap:0 var(--s-24);align-items:baseline;
+    text-decoration:none;color:var(--on-verde);padding:var(--s-12) 0;border-bottom:1px solid var(--rule);
+    transition:padding-left .28s var(--ease-out);
+  }
+  .ilist a:hover,.ilist a[aria-current="page"]{padding-left:12px;}
+  .ilist .num{color:var(--tinta-mute);}
+  .ilist .iname{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:clamp(var(--t-25),4vw,var(--t-39));line-height:1.1;}
+  .ilist .ifacts{color:var(--tinta-mute);text-align:right;}
+  .ilist a:hover .ifacts,.ilist a[aria-current="page"] .ifacts{color:var(--on-verde);}
+  @media (max-width:760px){
+    .ilist a{grid-template-columns:40px 1fr;gap:0 var(--s-16);}
+    .ilist .ifacts{grid-column:2;text-align:left;}
+  }
+  .ifoot{display:flex;flex-wrap:wrap;gap:var(--s-8) var(--s-32);align-items:center;margin-top:var(--s-32);}
+  .ifoot a{color:var(--on-verde);text-decoration:none;border-bottom:1px solid var(--rule);display:inline-flex;align-items:center;min-height:44px;}
+  .ifoot .fine{color:var(--tinta-mute);}
+  body.held{overflow:hidden;}
+
+  /* ---------- BEATS — Threshold, Detail, Turn, Rest ---------- */
+  .beat{padding:var(--s-96) 0;position:relative;}
+  @media (max-width:640px){.beat{padding:var(--s-64) 0;} .wrap{padding:0 20px;}}
+
+  .threshold{min-height:calc(100svh - 64px);display:flex;align-items:center;}
+  .threshold .wrap{width:100%;}
+  .th{display:grid;grid-template-columns:minmax(0,1fr) 44%;gap:var(--s-48);align-items:center;}
+  .th.wide{grid-template-columns:minmax(0,1fr) 54%;}
+  @media (max-width:820px){.th,.th.wide{grid-template-columns:1fr;gap:var(--s-48);}}
+
+  .hook{
+    font-family:"Cormorant Garamond",Georgia,serif;font-weight:300;
+    font-size:clamp(var(--t-39),5.4vw,var(--t-61));line-height:1.08;
+    max-width:15ch;margin:0 0 var(--s-48);color:var(--tinta);
+  }
+  .stop{color:var(--clay-on-verde);}   /* the one orange element on the screen */
+
+  /* THE SPECIMEN LABEL — hairline, name, facts. Always a number. */
+  .label{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s-4);margin-top:var(--s-16);}
+  .label .wipe{display:block;width:52px;height:1px;background:var(--laton);margin-bottom:var(--s-4);}
+  .label .name{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-20);line-height:1.2;color:var(--tinta);}
+  .label .facts{color:var(--tinta-soft);}
+
+  /* frames */
+  .frame{position:relative;overflow:hidden;background:var(--papel-2);margin:0;}
+  .r45{aspect-ratio:4/5;} .r32{aspect-ratio:3/2;}
+  .frame img{width:100%;height:100%;object-fit:cover;filter:saturate(.88) contrast(.97) brightness(.99);transform-origin:center;}
+  .frame::after{content:"";position:absolute;inset:0;background-image:var(--grain);opacity:.16;mix-blend-mode:overlay;pointer-events:none;}
+  .frame.empty::after{display:none;}
+
+  /* Home: the portrait dissolves into Papel from its left edge */
+  .portrait{aspect-ratio:4/5;background:transparent;}
+  .portrait img{object-position:58% 26%;}
+  .portrait-mask{
+    -webkit-mask-image:linear-gradient(to right,transparent 0,rgba(0,0,0,.55) 22%,#000 48%);
+    mask-image:linear-gradient(to right,transparent 0,rgba(0,0,0,.55) 22%,#000 48%);
+  }
+  @media (max-width:820px){
+    .portrait-mask{-webkit-mask-image:linear-gradient(to bottom,#000 55%,transparent 100%);mask-image:linear-gradient(to bottom,#000 55%,transparent 100%);}
+  }
+
+  /* Detail */
+  .d{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:var(--s-64);align-items:start;}
+  .d.wide{grid-template-columns:minmax(0,1fr) minmax(0,520px);}
+  .d-media{margin:var(--s-96) 0 0;}
+  .prose{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:clamp(var(--t-25),3vw,var(--t-31));line-height:1.35;max-width:32ch;margin:0 0 var(--s-24);}
+  @media (max-width:820px){.d,.d.wide{grid-template-columns:1fr;gap:0;} .d-media{margin-top:var(--s-48);}}
+  .hondo{background:var(--papel-2);}
+  .hondo .frame{background:var(--papel);}
+
+  /* Turn — the page's one Verde room */
+  .turn{min-height:100svh;display:flex;align-items:center;background:var(--verde-deep);}
+  /* two deep rooms never touch */
+  .hondo + .turn,.prints + .turn{background:var(--verde);}
+  .turn .wrap{width:100%;}
+  .turnline{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:300;font-size:clamp(var(--t-31),4vw,var(--t-39));line-height:1.3;max-width:22ch;margin:0;color:var(--on-verde);}
+  .turn .mark{display:block;width:104px;height:auto;margin-top:var(--s-48);color:var(--laton-on-verde);}
+  .turn .mark.small{width:64px;}
+
+  /* Rest */
+  .rest{padding:calc(var(--s-96) * 2) 0;}
+  @media (max-width:640px){.rest{padding:var(--s-96) 0;}}
+  .restline{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-25);line-height:1.4;color:var(--tinta-soft);margin:0;max-width:34ch;}
+  .rest.center .wrap{display:flex;flex-direction:column;align-items:center;text-align:center;}
+  .rest .flower{width:40px;height:66px;color:var(--tinta);margin-bottom:var(--s-48);}
+  .next{display:inline-flex;flex-direction:column;align-items:flex-start;gap:var(--s-8);margin-top:var(--s-96);text-decoration:none;color:var(--tinta);min-height:44px;}
+  .rest.center .next{align-items:center;}
+  .next .caps{color:var(--tinta-soft);}
+  .next .nname{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-31);line-height:1.2;}
+  .next .wipe{display:block;height:1px;width:100%;background:var(--laton);transform:scaleX(0);transform-origin:left;transition:transform 600ms var(--ease-out);}
+  .next:hover .wipe,.next:focus-visible .wipe{transform:scaleX(1);}
+
+  /* ---------- THE HORIZON — a road, frontage ticks, three lot lines ---------- */
+  .horizon{padding:var(--s-96) 0 0;}
+  .horizon svg{display:block;width:100%;height:120px;color:var(--laton);}
+
+  /* ---------- HOME HERO — her portrait, and the drawing that becomes a home ----------
+     She asked that attention never stalls: nothing pins. The stage rides down with
+     the reader (--ride, set in motion.js) while the drawing changes and a phrase
+     lands for each part, then lands at the foot of the hero and the next section
+     arrives. The portrait is shown in its own colour, feathered into the green on
+     every edge — no green wash over her. The foot of the hero softens into Papel. */
+  .hero{position:relative;overflow:hidden;}
+  .hero .stage{position:relative;min-height:100svh;display:flex;align-items:center;padding:var(--s-96) 0;--survey:1;}
+  @media (prefers-reduced-motion:no-preference){
+    .js .hero{height:180svh;}
+    .js .hero .stage{height:100svh;min-height:0;padding:var(--s-48) 0 0;transform:translate3d(0,var(--ride,0px),0);will-change:transform;}
+  }
+  .hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:12svh;z-index:3;pointer-events:none;
+    background:linear-gradient(to bottom,transparent,#F5EFE4);}
+  .hero .field{
+    position:absolute;top:0;right:0;bottom:0;width:58%;z-index:0;
+    -webkit-mask-image:linear-gradient(to right,transparent 0,rgba(0,0,0,.3) 16%,rgba(0,0,0,.8) 36%,#000 52%),linear-gradient(to bottom,transparent 0,#000 14%,#000 70%,transparent 100%);
+    -webkit-mask-composite:source-in;
+    mask-image:linear-gradient(to right,transparent 0,rgba(0,0,0,.3) 16%,rgba(0,0,0,.8) 36%,#000 52%),linear-gradient(to bottom,transparent 0,#000 14%,#000 70%,transparent 100%);
+    mask-composite:intersect;
+  }
+  .hero .field img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:58% 26%;}
+  @media (max-width:820px){
+    .hero .stage{align-items:flex-end;padding-bottom:var(--s-48);}
+    .js .hero .stage{padding:0 0 var(--s-48);}
+    .hero .field{width:100%;bottom:auto;height:64%;
+      -webkit-mask-image:linear-gradient(to bottom,#000 0,#000 48%,rgba(0,0,0,.45) 74%,transparent 100%);
+      mask-image:linear-gradient(to bottom,#000 0,#000 48%,rgba(0,0,0,.45) 74%,transparent 100%);}
+    .hero .field img{object-position:center 22%;}
+  }
+  .hero .inner{position:relative;z-index:2;width:100%;}
+  .hero .say{max-width:34rem;display:flex;flex-direction:column;align-items:flex-start;gap:var(--s-24);}
+  .specimen{position:relative;width:172px;height:189px;flex:none;}
+  .specimen svg{position:absolute;inset:0;width:100%;height:100%;}
+  .figure{color:var(--on-verde);opacity:.94;}
+  .survey{color:var(--laton-on-verde);opacity:calc(var(--survey) * .8);}
+  .wordmark{font-family:"Cormorant Garamond",serif;font-weight:300;margin:0;
+    font-size:clamp(var(--t-39),9vw,var(--t-61));line-height:1;letter-spacing:.3em;text-transform:uppercase;}
+  .hero .hr{width:52px;height:1px;background:var(--laton-on-verde);}
+  .phrases p{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:clamp(var(--t-20),2.6vw,var(--t-31));
+    line-height:1.35;max-width:24ch;margin:0 0 var(--s-12);color:var(--on-verde);}
+  .states{color:var(--tinta-mute);white-space:nowrap;}
+  .states span{display:block;}
+  @media (prefers-reduced-motion:no-preference){
+    .js .phrases,.js .states{display:grid;}
+    .js .phrases p,.js .states span{grid-area:1/1;opacity:0;transform:translateY(8px);
+      transition:opacity 420ms var(--ease-out),transform 420ms var(--ease-out);}
+    .js .phrases p.on,.js .states span.on{opacity:1;transform:none;}
+    .js .phrases p{margin:0;}
+  }
+  @media (max-width:640px){.specimen{width:120px;height:132px;} .hero .say{gap:var(--s-16);}}
+
+  /* ---------- THE GUIDE — the colibrí flies with the drawing, then leads on ----------
+     It moves only because the reader moved. Latón Claro on green, Latón on Papel. */
+  .guide{position:fixed;top:0;left:0;width:84px;height:auto;z-index:15;color:var(--laton-on-verde);
+    opacity:0;pointer-events:none;will-change:transform,opacity;transition:color .5s var(--ease-out);}
+  .guide.on-paper{color:#8F7546;}
+  @media (max-width:640px){.guide{width:56px;}}
+  @media (prefers-reduced-motion:reduce){.guide{display:none;}}
+
+  /* ---------- THE DAYS — prints ----------
+     A photograph arrives as paper, develops, and only real footage moves (js/motion.js prints()).
+     The room is Verde Hondo, never black; the prints are Papel. Measured on #16352A (L 0.0289):
+       #F5EFE4 Papel           10.3:1   lines, names, sayings
+       78% Papel mix           ~7.6:1   translations
+       #C9AC78 Latón Claro      6.12:1  labels, hairlines
+     No tape, no stickers, no shadows (CLAUDE.md): the paper margin and a lift are the whole object. */
+  .prints{background:var(--verde-deep);color:var(--on-verde);padding:var(--s-96) 0;overflow:hidden;}
+  .prints :focus-visible{outline-color:var(--laton-on-verde);}
+  .prints h2{margin:0 0 var(--s-96);color:var(--laton-on-verde);}
+  .dset{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,7fr);gap:var(--s-64);align-items:start;margin:0 0 var(--s-96);}
+  .dset.flip{grid-template-columns:minmax(0,7fr) minmax(0,4fr);}
+  .dset.flip .dlead{order:2;}
+  .dlead{padding-top:var(--s-48);display:flex;flex-direction:column;align-items:flex-start;gap:var(--s-8);}
+  .dline{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-31);line-height:1.2;margin:0;max-width:17ch;}
+  .prints .src{color:var(--laton-on-verde);}
+  .prints .say{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:300;font-size:var(--t-25);line-height:1.3;quotes:"\201C" "\201D";}
+  .dlead .say{font-size:var(--t-31);}
+  .prints .tr{font-size:var(--t-14);line-height:1.5;color:color-mix(in srgb, var(--on-verde) 78%, var(--verde-deep));}
+  .prints .tr:empty{display:none;}
+  /* a set: the first print in front, the next ones leaving from behind it */
+  .dprints{position:relative;display:flex;align-items:flex-start;}
+  .print{position:relative;margin:0;flex:none;width:58%;transform:rotate(var(--rot,0deg));}
+  .print.l{width:72%;} .print.v{width:42%;}
+  .print:nth-of-type(1){z-index:3;} .print:nth-of-type(2){z-index:2;} .print:nth-of-type(3){z-index:1;}
+  .print + .print{margin-left:-12%;margin-top:var(--s-96);}
+  .dset.n3 .print{width:46%;} .dset.n3 .print.l{width:56%;}
+  .dset.n3 .print:nth-of-type(3){margin-top:var(--s-32);}
+  /* a Polaroid: an even margin on three sides, the deep one at the foot */
+  .paper{display:block;width:100%;padding:6% 6% 22%;margin:0;border:0;border-radius:0;background:#F2ECE0;cursor:zoom-in;
+    transition:transform 320ms var(--ease-out);}
+  /* the camera the prints come out of — only when JS will play it; it leaves once the set is out */
+  .cam{display:none;}
+  .js .prints.armed .dprints{padding-top:96px;}
+  .js .prints.armed .cam{display:block;position:absolute;z-index:5;top:0;left:26%;width:min(150px,34%);height:auto;
+    color:var(--on-verde);transform:translateX(-50%);opacity:0;transition:opacity 420ms var(--ease-out);}
+  .cam .body{fill:var(--verde-deep);}
+  .js .prints.armed .dset.live .cam{opacity:1;}
+  .js .prints.armed .dset.shot .cam{opacity:0;transition-delay:600ms;}
+  .js .prints.armed .print .pic{background:var(--verde-deep);}
+  .print .pic{position:relative;display:block;aspect-ratio:3/4;overflow:hidden;background:#E8E1D2;}
+  .print.l .pic{aspect-ratio:4/3;} .print.v .pic{aspect-ratio:9/16;}
+  .print .dev,.print .memory{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.9) contrast(.98);user-select:none;-webkit-user-drag:none;}
+  .print .pic::after{content:"";position:absolute;inset:0;background-image:var(--grain);opacity:var(--g,.18);mix-blend-mode:overlay;pointer-events:none;}
+  .print .memory{opacity:0;transition:opacity 420ms var(--ease-out);}
+  .print[data-state="playing"] .memory,.print[data-state="settling"] .memory,.print.played .memory{opacity:1;}
+  /* before JS takes a print through its states it waits unseen; without JS every print is simply there */
+  .js .prints.armed .print[data-state="idle"]{opacity:0;}
+  /* a developed print lifts a little and straightens under the pointer — no scale, no shadow */
+  @media (hover:hover){ .print[data-state="still"] .paper:hover{transform:translateY(-5px) rotate(calc(var(--rot,0deg) * -.5));} }
+  .print figcaption{margin-top:var(--s-16);display:flex;flex-direction:column;align-items:flex-start;gap:var(--s-4);max-width:34ch;}
+  /* a print with another tucked beside it keeps its words clear of that neighbour */
+  .print:not(:last-child) figcaption{max-width:min(34ch, 72%);}
+  .print .wipe{display:block;width:52px;height:1px;background:var(--laton-on-verde);margin-bottom:var(--s-4);}
+  .print .name{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-20);line-height:1.2;}
+  .print .facts{color:var(--laton-on-verde);}
+  .print .src{margin-top:var(--s-12);}
+  .sound{font:inherit;background:none;border:0;border-bottom:1px solid var(--laton-on-verde);color:var(--laton-on-verde);cursor:pointer;min-height:44px;padding:0;margin-top:var(--s-8);}
+  .sound[aria-pressed="true"]{color:var(--on-verde);}
+  /* the viewer: the photograph alone, on Verde Hondo */
+  .viewer{border:0;padding:var(--s-24);width:min(92vw,1100px);max-height:94svh;background:var(--verde-deep);color:var(--on-verde);}
+  .viewer::backdrop{background:rgba(22,53,42,.9);}
+  .vclose{display:flex;margin:0 0 var(--s-16) auto;min-height:44px;padding:0 var(--s-8);background:none;border:0;border-bottom:1px solid var(--laton-on-verde);color:var(--on-verde);font:inherit;cursor:pointer;}
+  .vmedia img,.vmedia video{display:block;max-width:100%;max-height:72svh;margin:0 auto;}
+  .vcap figcaption{margin-top:var(--s-16);display:flex;flex-direction:column;gap:var(--s-4);}
+  .vcap .wipe{display:block;width:52px;height:1px;background:var(--laton-on-verde);}
+  .vcap .name{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-25);}
+  .vcap .facts{color:var(--laton-on-verde);}
+  /* a phone keeps ordinary scrolling: the prints stack, the next one tucked a little under the last */
+  @media (max-width:760px){
+    .dset,.dset.flip{grid-template-columns:1fr;gap:var(--s-32);margin-bottom:var(--s-64);}
+    .dset.flip .dlead{order:0;}
+    .dlead{padding-top:0;}
+    .dprints{flex-direction:column;}
+    .print,.dset.n3 .print{width:82%;} .print.l,.dset.n3 .print.l{width:94%;} .print.v{width:64%;}
+    .print + .print,.dset.n3 .print:nth-of-type(3){margin-left:auto;margin-top:calc(-1 * var(--s-24));}
+    .js .prints.armed .cam{left:41%;}
+    .print figcaption{margin-bottom:var(--s-32);}
+  }
+
+
+  /* ---------- PAPER — back to Papel below the hero (her request) ----------
+     Fixed light values in both themes: she never wants a black ground, and the
+     dark theme would turn Papel near-black. Text here is Verde Hondo, not Tinta —
+     "we don't use black, we use the dark version of colors". Measured on #F5EFE4:
+       #16352A Verde Hondo   11.56:1  text
+       #5A5148 Tinta Suave    6.78:1  labels
+       #8F7546 Latón          3.82:1  hairlines only
+       #AF5F3E Arcilla        4.05:1  the hook's full stop (display 49px+) */
+  .paper{
+    background:#F5EFE4;color:#16352A;
+    --tinta:#16352A;--tinta-soft:#5A5148;--tinta-mute:#5A5148;
+    --laton:#8F7546;--rule:#D7CDBB;--papel-2:#EDE5D7;
+    --arcilla:#AF5F3E;--arcilla-text:#9E5031;--clay-on-verde:#AF5F3E;
+  }
+  .paper :focus-visible{outline-color:#AF5F3E;}
+
+  /* a bit about her */
+  .meet .m{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,320px);gap:var(--s-96);align-items:start;}
+  .meet .hook{max-width:16ch;margin-bottom:var(--s-32);}
+  .meet .bio p{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-25);line-height:1.45;max-width:36ch;margin:0 0 var(--s-16);color:var(--tinta);}
+  .meet .facts-list{display:flex;flex-direction:column;gap:var(--s-24);padding-top:var(--s-16);}
+  .meet .facts-list .label{margin:0;}
+  .meet .next{margin-top:var(--s-32);}
+  .meet .bio-part + .bio-part{margin-top:var(--s-32);}
+  .meet .bio .bio-stack{font-style:italic;color:var(--tinta-soft);}
+  .meet .bio .bio-stack span{display:block;}
+  /* the aerodrome, only mentioned: a small paper airplane crosses above the lines once, like a margin note */
+  .mplane{display:none;}
+  .js .mplane{display:block;width:min(420px,100%);height:auto;overflow:visible;margin:0 0 var(--s-8);}
+  .mplane .mp-route{stroke:var(--laton);stroke-width:1;stroke-dasharray:1;stroke-dashoffset:1;stroke-linecap:round;}
+  .mplane.done .mp-route{opacity:.45;transition:opacity 900ms var(--ease-out);}
+  .mplane .mp-plane path{fill:#F5EFE4;stroke:#16352A;stroke-width:1.2;stroke-linejoin:round;}
+  .mplane.armed .mp-plane{opacity:0;}
+  /* the index leans in, slightly, while its story is read */
+  .js .meet .facts-list.armed .label > span:not(.wipe){opacity:.6;transition:opacity 420ms var(--ease-out),transform 420ms var(--ease-out);}
+  .js .meet .facts-list.armed .label.cur > span:not(.wipe){opacity:1;transform:translateX(4px);}
+  @media (max-width:820px){.meet .m{grid-template-columns:1fr;gap:var(--s-48);}}
+
+  /* the sneak peek — a sideways row of her days, scrolled by the reader */
+  .peek{padding-top:0;}
+  .peek-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s-24);border-top:1px solid var(--rule);padding-top:var(--s-48);}
+  .peek-head h2{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:clamp(var(--t-31),4vw,var(--t-39));line-height:1.15;margin:0;}
+  .peek-head .caps{color:var(--tinta-soft);white-space:nowrap;}
+  .peek-row{
+    display:flex;gap:var(--s-32);overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;
+    margin-top:var(--s-32);padding:0 max(30px, calc((100vw - var(--maxw)) / 2 + 30px)) var(--s-24);
+    scroll-padding:0 max(30px, calc((100vw - var(--maxw)) / 2 + 30px));
+    scrollbar-width:thin;scrollbar-color:#8F7546 transparent;
+  }
+  .peek-row:focus-visible{outline-offset:-2px;}
+  .peek-item{flex:none;width:clamp(220px,24vw,290px);margin:0;scroll-snap-align:start;}
+  .peek-end{flex:none;width:clamp(220px,24vw,290px);aspect-ratio:4/5;scroll-snap-align:start;
+    display:flex;flex-direction:column;justify-content:flex-end;gap:var(--s-8);padding:var(--s-24);
+    background:#EDE5D7;color:#16352A;text-decoration:none;}
+  .peek-end .nname{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-31);line-height:1.15;}
+  .peek-end .caps{color:#5A5148;}
+  .peek-end .wipe{display:block;height:1px;width:52px;background:#8F7546;transform-origin:left;transition:transform 600ms var(--ease-out);}
+  .peek-end:hover .wipe,.peek-end:focus-visible .wipe{transform:scaleX(2);}
+  .peek-hint{margin-top:var(--s-8);color:var(--tinta-soft);}
+  @media (max-width:640px){.peek-row{padding:0 20px var(--s-24);scroll-padding:0 20px;}}
+
+  /* ---------- THE WORK — what I do ---------- */
+  .crafts{margin:var(--s-32) 0 0 calc(56px + var(--s-24));}
+  .craft{display:grid;grid-template-columns:40px 1fr;gap:var(--s-16);padding:var(--s-32) 0;border-bottom:1px solid var(--rule);}
+  .craft .num{color:var(--tinta-mute);padding-top:10px;}
+  .craft h3{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-31);line-height:1.2;margin:0 0 var(--s-8);}
+  .craft p{margin:0 0 var(--s-12);color:var(--tinta-soft);max-width:62ch;}
+  .craft .caps{color:var(--tinta-mute);}
+  @media (max-width:640px){.crafts{margin-left:0;}}
+
+  /* ---------- ABOUT — her photograph and her story ----------
+     Each chapter is two columns: the lines, and one photograph that stays beside
+     them (sticky inside its own chapter) while they are read, then leaves with the
+     chapter as the next one brings its own. On narrow screens the photograph sits
+     above its chapter. */
+  /* About is compact on purpose: she asked for no big empty spaces */
+  .compact{min-height:0;padding:var(--s-64) 0;}
+  .rest.compact{padding:var(--s-64) 0 var(--s-96);}
+
+  /* THE WORK — one piece of land is the page. A tall track with a pinned stage: the film fills
+     it, and short cues arrive over it (js/motion.js). Without JS the cues are a list on Verde
+     Hondo. Reduced motion: one screen, still stages, Previous / Next.
+     Cues on the film: brand Verde #1E4638 (her ask: never near-black), 9.7:1 on Papel. */
+  .ws{position:relative;background:var(--verde-deep);}
+  .ws-track{position:relative;}
+  .js .ws-track{height:6000svh;}
+  .ws-stage{position:relative;}
+  .js .ws-stage{position:sticky;top:0;height:100svh;overflow:hidden;}
+  .ws-film,.ws-scrim,.ws-cover{display:none;}
+  .js .ws-film{display:block;position:absolute;inset:0;width:100%;height:100%;border:0;background:#E7E0D1;}
+  .js .ws-scrim{display:block;position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 62% at 0% 100%, rgba(231,224,209,.9) 0%, rgba(231,224,209,.58) 34%, rgba(231,224,209,0) 64%);}
+  .js .ws-cover{display:block;position:absolute;inset:0;background:#F5EFE4;pointer-events:none;}
+  .ws-cues{list-style:none;margin:0;padding:var(--s-96) 7vw;display:grid;gap:var(--s-48);}
+  .ws-group{display:flex;flex-direction:column;gap:var(--s-16);}
+  .ws-line{margin:0;font-family:"Cormorant Garamond",serif;font-weight:300;font-size:clamp(var(--t-31),3.6vw,var(--t-49));line-height:1.1;max-width:20ch;color:var(--on-verde);}
+  .ws-line .stop{color:var(--arcilla);}
+  .js .ws-cues{position:absolute;inset:0;padding:0;display:block;pointer-events:none;}
+  .js .ws-group{position:absolute;left:7vw;bottom:14svh;width:fit-content;max-width:min(700px,86vw);isolation:isolate;}
+  /* Her ask: words never sit on the model. Each group carries its own feathered Papel field that
+     arrives and leaves with its lines — no box, no edge, no shadow; the land stays visible around it.
+     Verde Hondo on Papel = 12.4:1. */
+  /* softened at her ask: the warm haze, not full Papel, and a long easing falloff with no edge */
+  .js .ws-group::before{content:"";position:absolute;inset:-110px -170px -110px -190px;z-index:-1;pointer-events:none;
+    background:radial-gradient(closest-side,
+      rgba(236,229,215,.84) 0%, rgba(236,229,215,.8) 34%, rgba(236,229,215,.66) 52%,
+      rgba(236,229,215,.44) 68%, rgba(236,229,215,.22) 82%, rgba(236,229,215,.07) 93%, rgba(236,229,215,0) 100%);
+    opacity:0;transition:opacity 720ms var(--ease-out);}
+  .js .ws-group:has(.ws-line.on)::before{opacity:1;}
+  .js .ws-line{color:#1E4638;opacity:0;transform:translateY(16px);transition:opacity 720ms var(--ease-out),transform 720ms var(--ease-out);}
+  .js .ws-line.on{opacity:1;transform:none;}
+  .js .ws-group.open{bottom:auto;top:50%;transform:translateY(-50%);}
+  .js .ws-group.open .ws-line{font-size:clamp(var(--t-39),5vw,var(--t-61));max-width:16ch;}
+  .js .ws-group.words{gap:var(--s-8);}
+  .js .ws-group.end{left:0;right:0;width:auto;bottom:auto;top:50%;transform:translateY(-50%);align-items:center;text-align:center;}
+  .js .ws-group.end .ws-line{font-size:clamp(var(--t-39),5vw,var(--t-61));max-width:none;}
+  /* keep scrolling (her ask): a quiet Papel tab with a Latón line that fills with the story, gone before the end */
+  .ws-more{display:none;}
+  .js .ws-more{display:flex;position:absolute;z-index:5;right:7vw;bottom:6svh;align-items:center;gap:var(--s-12);padding:var(--s-8) var(--s-12);background:rgba(245,239,228,.86);border-radius:2px;color:#1E4638;pointer-events:none;transition:opacity 420ms var(--ease-out);}
+  .ws-more .caps{font-size:var(--t-12);letter-spacing:.24em;}
+  .ws-more-line{position:relative;display:block;width:72px;height:1px;background:rgba(143,117,70,.35);overflow:hidden;}
+  .ws-more-line i{position:absolute;inset:0;background:var(--laton);transform-origin:left;transform:scaleX(var(--p,0));}
+  .js .ws-more.done{opacity:0;}
+  @media (max-width:640px){.js .ws-more{right:20px;bottom:3svh;}}
+  .ws-steps[hidden]{display:none;}
+  .ws-steps{position:absolute;z-index:5;right:7vw;bottom:14svh;display:flex;align-items:center;gap:var(--s-16);color:#1E4638;}
+  .ws-steps button{min-height:44px;min-width:44px;padding:0 var(--s-16);background:rgba(245,239,228,.8);color:#1E4638;border:1px solid var(--laton);border-radius:2px;font:inherit;font-size:var(--t-12);letter-spacing:.2em;text-transform:uppercase;cursor:pointer;}
+  .ws-steps button:disabled{opacity:.4;cursor:default;}
+  .ws-count{min-width:5ch;text-align:center;color:#1E4638;}
+  @media (prefers-reduced-motion: reduce){
+    .js .ws-track{height:auto;}
+    .js .ws-line{transform:none;transition:opacity var(--dur) var(--ease-out);}
+  }
+  @media (max-width:640px){
+    .js .ws-group{left:20px;right:20px;width:auto;bottom:12svh;}
+    .ws-steps{left:20px;right:20px;justify-content:space-between;bottom:calc(12svh + 150px);}
+  }
+
+  /* the opening: her photograph left, her first story right — at every width above a phone */
+  .me{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:var(--s-48);align-items:center;width:100%;}
+  .feather{aspect-ratio:3/4;background:transparent;}
+  .feather img{object-position:center 30%;
+    -webkit-mask-image:radial-gradient(ellipse 72% 70% at 50% 44%,#000 55%,transparent 100%);
+    mask-image:radial-gradient(ellipse 72% 70% at 50% 44%,#000 55%,transparent 100%);}
+  .feather::after{display:none;}
+  .me-text .kicker{color:var(--tinta-mute);margin-bottom:var(--s-12);}
+  .me-text .hook{font-size:clamp(var(--t-31),4.4vw,var(--t-49));margin-bottom:var(--s-16);max-width:14ch;}
+  .me-text .lead{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:300;font-size:var(--t-20);line-height:1.4;margin:0 0 var(--s-8);max-width:40ch;}
+  .me-text .body{font-size:var(--t-14);line-height:1.7;color:var(--tinta-soft);margin:0;max-width:56ch;}
+  .facts-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-16);margin-top:var(--s-24);padding-top:var(--s-16);border-top:1px solid var(--rule);}
+  .facts-row .label{margin:0;}
+  /* ABOUT — she is the main character (her ask): the photograph takes the larger column, no mat, in
+     its own colour. A Latón Claro hairline sits offset behind it like the edge of a print — the frame
+     without the canvas. No radius, no shadow, nothing shiny. */
+  .me-section .me{grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:var(--s-64);align-items:end;}
+  .me-photo{justify-self:stretch;width:100%;max-width:none;}
+  .me-frame{position:relative;margin:0 var(--s-16) var(--s-16) 0;}
+  .me-frame::before{content:"";position:absolute;inset:var(--s-16) calc(-1 * var(--s-16)) calc(-1 * var(--s-16)) var(--s-16);border:1px solid var(--laton-on-verde);pointer-events:none;}
+  .me-frame img{position:relative;display:block;width:100%;aspect-ratio:4/5;max-height:84svh;object-fit:cover;object-position:center 30%;}
+  .me-section .me-text .hook{font-size:clamp(var(--t-31),4vw,var(--t-49));max-width:14ch;}
+  /* the road so far, under the photograph: the map of her story, before its chapters. One horizontal
+     line at every width (a strip that scrolls sideways on a phone), a stake tick per milestone. With JS,
+     a line-drawn paper airplane waits at each milestone and flies the next leg only when the reader
+     reaches it; the route keeps going faintly past today and dissolves (js/motion.js). */
+  .tl-flight{position:relative;margin-top:var(--s-64);}
+  .tl-scroll{position:relative;padding:var(--s-48) 0 var(--s-8) var(--s-16);overflow-x:auto;scrollbar-width:none;}   /* room for the plane's tail at the first milestone */
+  .tl-scroll::-webkit-scrollbar{display:none;}
+  .tl-route{display:none;}
+  .js .tl-route{display:block;position:absolute;left:0;top:0;overflow:visible;pointer-events:none;}
+  .tl-route path{fill:none;stroke-linecap:round;stroke-linejoin:round;}
+  .tl-route .tl-leg{stroke:var(--laton-on-verde);stroke-width:1.2;stroke-dasharray:1;stroke-dashoffset:1;}
+  .tl-route .tl-future{stroke:var(--laton-on-verde);stroke-width:1;stroke-dasharray:1;stroke-dashoffset:1;opacity:0;}
+  .tl-route .tl-plane path{fill:var(--verde);stroke:var(--on-verde);stroke-width:1.3;}
+  .js .tl-flight .tl-step::before{display:none;}
+  /* focus (her iteration): the destination primary, where she came from still legible, what follows quiet */
+  .tl-flight.armed .tl-step > span:not(.tl-dot){opacity:.28;transition:opacity 480ms var(--ease-out);}
+  .tl-flight.armed .tl-step.past > span:not(.tl-dot){opacity:.55;}
+  .tl-flight.armed .tl-step.cur > span:not(.tl-dot){opacity:1;}
+  .tl{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(140px,1fr));column-gap:var(--s-24);position:relative;}
+  .tl-step{position:relative;display:flex;flex-direction:column;gap:var(--s-4);padding-top:var(--s-32);}
+  .tl-step::before{content:"";position:absolute;top:5px;left:0;right:calc(-1 * var(--s-24));height:1px;background:var(--laton-on-verde);opacity:.7;transform-origin:left;}
+  .tl-step:last-child::before{display:none;}
+  .tl-dot{position:absolute;top:0;left:0;width:1px;height:11px;background:var(--laton-on-verde);}
+  .tl-num{color:var(--tinta-mute);}
+  .tl-place{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-20);line-height:1.2;color:var(--tinta);}
+  .tl-what{font-size:var(--t-14);line-height:1.5;color:var(--tinta-soft);max-width:26ch;}
+  @media (max-width:820px){
+    .me-section .me{grid-template-columns:1fr;gap:var(--s-48);}
+    .tl{grid-template-columns:repeat(5,170px);}
+  }
+  .story-intro{margin:0 0 var(--s-64);}
+  .story-intro p{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-20);line-height:1.45;margin:0 0 var(--s-8);max-width:48ch;}
+  .story-intro .stack{font-style:italic;color:var(--tinta-soft);}
+  .story-intro .stack span + span::before{content:" · ";color:var(--laton);font-style:normal;}
+  .me-text .hook{font-size:clamp(var(--t-31),4vw,var(--t-39));max-width:20ch;}
+  .intro-lines p{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-20);line-height:1.45;margin:0 0 var(--s-8);max-width:44ch;}
+  .intro-lines .stack{font-style:italic;color:var(--tinta-soft);}
+  .intro-lines .stack span + span::before{content:" · ";color:var(--laton);font-style:normal;}
+  .story .kicker{color:var(--tinta-soft);margin-bottom:var(--s-24);}
+  @media (max-width:820px){
+    .me{grid-template-columns:minmax(0,38%) minmax(0,1fr);gap:var(--s-24);align-items:start;}
+    .facts-row{grid-template-columns:1fr;gap:var(--s-12);}
+  }
+  @media (max-width:520px){.me{grid-template-columns:1fr;} .me-photo .feather{max-width:240px;}}
+
+  /* the coffee photograph holds its own half of the room (her ask: it read as a thumbnail) */
+  .grat{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-64);align-items:center;}
+  .grat-fig{margin:0;width:100%;max-width:440px;justify-self:end;}   /* the UA figure margin was shrinking it to a thumbnail */
+  @media (max-width:640px){.grat{grid-template-columns:1fr;gap:var(--s-32);} .grat-fig{max-width:220px;}}
+  .gratitude{margin-top:var(--s-24);max-width:40ch;}
+  .gratitude .prose{color:var(--tinta-soft);font-size:var(--t-20);margin-bottom:var(--s-12);}
+
+  /* the story: one photograph per chapter, left, then right, then left — never stacked
+     above the words. Photographs slide in from their own side (motion.css). */
+  .story{padding:var(--s-64) 0;overflow-x:clip;}   /* photos slide in from outside; clip, not hidden, so sticky still works */
+  .chapter{display:grid;grid-template-columns:minmax(0,1fr) clamp(110px,28%,220px);column-gap:var(--s-48);
+    align-items:start;padding:var(--s-48) 0;border-top:1px solid var(--rule);}
+  .chapter.flip{grid-template-columns:clamp(110px,28%,220px) minmax(0,1fr);}
+  .chapter.opening{border-top:0;padding-top:0;}
+  .chapter .dhead{grid-column:1 / -1;display:flex;align-items:baseline;gap:var(--s-16);margin-bottom:var(--s-16);}
+  .chnum{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:300;font-size:var(--t-39);line-height:1;color:var(--laton);}
+  .chapter h2{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:clamp(var(--t-25),3vw,var(--t-31));line-height:1.15;margin:0;}
+  .chapter .lines{grid-column:1;grid-row:2;max-width:46ch;}
+  .chapter .ch-fig{grid-column:2;grid-row:2;margin:0;position:sticky;top:96px;}
+  .chapter.flip .lines{grid-column:2;}
+  .chapter.flip .ch-fig{grid-column:1;}
+  .lines p{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-20);line-height:1.45;margin:0 0 var(--s-8);}
+  .lines > p:first-child{font-size:var(--t-25);line-height:1.3;margin-bottom:var(--s-12);}
+  .chapter.opening .lines p{font-size:clamp(var(--t-25),3.6vw,var(--t-39));line-height:1.2;margin:0 0 var(--s-12);max-width:20ch;}
+  /* short lists run on one line, dotted, instead of a tall column */
+  .lines .stack{font-style:italic;color:var(--tinta-soft);}
+  .lines .stack span + span::before{content:" · ";color:var(--laton);font-style:normal;}
+  /* a pull line: one sentence set large between hairlines */
+  .lines .pull{font-style:italic;font-size:var(--t-31);line-height:1.25;color:var(--tinta);
+    border-top:1px solid var(--laton);border-bottom:1px solid var(--laton);padding:var(--s-16) 0;margin:var(--s-24) 0;}
+  .ch-fig .label{margin-top:var(--s-8);}
+  .ch-fig .label .name{font-size:var(--t-14);}
+  .ch-fig .ch-one{margin:0;}
+  .ch-pair .ch-one + .ch-one{margin-top:var(--s-24);}
+  .ch-fig .label .facts{font-size:var(--t-12);letter-spacing:.14em;}
+  @media (max-width:640px){
+    .chapter{column-gap:var(--s-16);padding:var(--s-32) 0;}
+    .chapter .ch-fig{position:static;}
+    .lines p{font-size:var(--t-16);}
+    .lines > p:first-child{font-size:var(--t-20);}
+    .lines .pull{font-size:var(--t-25);}
+    .ch-fig .label .facts{display:none;}
+  }
+
+  /* ---------- THE PRACTICE — what she keeps learning on purpose ----------
+     Lighter than Inside My Mind: six practices, words first, then one drawing that plays once
+     (js/motion.js practice(); the same armed → s1 → s2 → s3 grammar and colours as the Mind drawings).
+     Verde and Verde Hondo rooms alternate; .hondo + .turn keeps two deep rooms apart. */
+  .plater{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-31);line-height:1.2;margin:calc(-1 * var(--s-32)) 0 var(--s-32);color:var(--tinta-soft);}
+  .practice-s.hondo{background:var(--verde-deep);}
+  .pgrid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:var(--s-64);align-items:start;}
+  .pkicker{color:var(--tinta-mute);margin:0 0 var(--s-24);}
+  .pvis .mfig{margin-top:0;}
+  .pvis .midea{margin-top:var(--s-32);}
+  .pcap{margin-top:var(--s-12);color:var(--tinta-mute);}
+  .pquestions{list-style:none;margin:var(--s-32) 0 0;padding:0;}
+  .pquestions li{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:300;font-size:var(--t-20);line-height:1.4;padding:var(--s-8) 0;border-bottom:1px solid var(--rule);max-width:40ch;}
+  .psouth{margin-top:var(--s-48);}
+  .pnotes{margin-top:var(--s-48);}
+  .pnote{padding:var(--s-16) 0;border-bottom:1px solid var(--rule);}
+  .pnote p{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-20);line-height:1.4;margin:0 0 var(--s-4);max-width:40ch;}
+  .pnote .caps{color:var(--tinta-mute);}
+  .pmark svg{display:block;width:min(220px,60%);height:auto;margin:0 auto;color:var(--on-verde);}
+  .pcode{margin:0;padding:var(--s-24);border:1px solid var(--rule);}
+  .pword{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:64px;fill:var(--on-verde);}
+  /* languages */
+  .pfig .gloss{opacity:.6;}
+  .pfig .strike{stroke:var(--clay-on-verde);stroke-width:1.6;}
+  .pfig .mean{fill:var(--laton-on-verde);}
+  .pfig.armed .gloss{opacity:0;transition:opacity 600ms var(--ease-out);}
+  .pfig.armed.s1 .gloss{opacity:.6;}
+  .pfig.armed .strike{stroke-dashoffset:1;}
+  .pfig.armed.s2 .strike{stroke-dashoffset:0;}
+  .pfig.armed .mean{opacity:0;transition:opacity 800ms var(--ease-out);}
+  .pfig.armed.s3 .mean{opacity:1;}
+  /* architecture */
+  .pfig .ground{opacity:.5;}
+  .pfig .light{stroke:var(--laton-on-verde);stroke-width:1.4;}
+  .pfig.armed .found,.pfig.armed .frame,.pfig.armed .window,.pfig.armed .light{stroke-dashoffset:1;}
+  .pfig.armed.s1 .found{stroke-dashoffset:0;}
+  .pfig.armed.s2 .frame,.pfig.armed.s2 .window{stroke-dashoffset:0;}
+  .pfig.armed.s3 .light{stroke-dashoffset:0;}
+  .pfig.armed .lightl,.pfig.armed .propl{opacity:0;transition:opacity 600ms var(--ease-out) 600ms;}
+  .pfig.armed.s3 .lightl,.pfig.armed.s3 .propl{opacity:1;}
+  /* finance: one price, then the system around it */
+  .pfig .price{stroke-width:1.7;}
+  .pfig .demand{stroke:var(--laton-on-verde);stroke-dasharray:5 5;}
+  .pfig .growth{stroke:var(--laton-on-verde);}
+  .pfig .risk{fill:var(--on-verde);stroke:none;opacity:.1;}
+  .pfig .cash{fill:var(--on-verde);opacity:.45;}
+  .pfig .capital{stroke:var(--clay-on-verde);stroke-dasharray:2 5;}
+  .pfig .tick{opacity:.4;}
+  .pfig.armed .price{stroke-dashoffset:1;}
+  .pfig.armed.s1 .price{stroke-dashoffset:0;transition-duration:1400ms;}
+  .pfig.armed .demand,.pfig.armed .growth,.pfig.armed .risk,.pfig.armed .capital{opacity:0;transition:opacity 800ms var(--ease-out);}
+  .pfig.armed.s2 .demand,.pfig.armed.s2 .growth{opacity:1;}
+  .pfig.armed.s2 .risk{opacity:.1;}
+  .pfig.armed .cash{opacity:0;transition:opacity 500ms var(--ease-out) calc(var(--i) * 70ms);}
+  .pfig.armed.s2 .cash{opacity:.45;}
+  .pfig.armed .plab,.pfig.armed .tick{opacity:0;transition:opacity 600ms var(--ease-out) calc(var(--i, 0) * 90ms);}
+  .pfig.armed.s3 .plab{opacity:1;}
+  .pfig.armed.s3 .tick{opacity:.4;}
+  .pfig.armed.s3 .capital{opacity:1;}
+  /* statistics: one number, then its range */
+  .pfig .bar{fill:var(--on-verde);opacity:.35;}
+  .pfig .num{fill:var(--laton-on-verde);}
+  .pfig .n1{opacity:0;}
+  .pfig.armed .bar{opacity:0;transform:scaleY(.2);transform-box:fill-box;transform-origin:50% 100%;
+    transition:opacity 500ms var(--ease-out) calc(var(--i) * 60ms),transform 700ms var(--ease-out) calc(var(--i) * 60ms);}
+  .pfig.armed.s1 .bar{opacity:.35;transform:none;}
+  .pfig.armed .num{transform:translate(-141px,-176px);transition:transform 1200ms var(--ease-out);}
+  .pfig.armed.s2 .num{transform:none;}
+  .pfig.armed .n1{opacity:1;transition:opacity 500ms var(--ease-out);}
+  .pfig.armed.s2 .n1{opacity:0;}
+  .pfig.armed .n2{opacity:0;transition:opacity 700ms var(--ease-out);}
+  .pfig.armed.s3 .n2{opacity:1;}
+  @media (max-width:820px){ .pgrid{grid-template-columns:1fr;gap:var(--s-32);} }
+  /* reading: the same page twice — what the first pass caught, and what the second one did */
+  .pfig .rdline{stroke:var(--on-verde);opacity:.45;}
+  .pfig .rdmark{stroke:var(--laton-on-verde);stroke-width:2.4;}
+  .pfig.armed .rdline{opacity:0;transition:opacity 500ms var(--ease-out) calc(var(--i,0) * 40ms);}
+  .pfig.armed.s1 .rdline{opacity:.45;}
+  .pfig.armed .rdmark{stroke-dashoffset:1;transition:stroke-dashoffset 700ms var(--ease-out) calc(var(--i,0) * 130ms);}
+  .pfig.armed.s2 .rdmark.first{stroke-dashoffset:0;}
+  .pfig.armed.s3 .rdmark.second{stroke-dashoffset:0;}
+  /* writing: the strike and what survives it reuse the translation grammar; .mean has to reach a path too */
+  .pfig path.mean{stroke:var(--laton-on-verde);stroke-width:1.6;}
+  @media (max-width:520px){ .pword{font-size:84px;} }
+  @media (prefers-reduced-motion:reduce){ .pfig *{transition:none!important;} }
+
+  /* ---------- JOURNAL — situations and thoughts before they become frameworks ----------
+     A list of entries, newest first; each entry on its own page: date, title, the story, and a margin
+     note when there is one. No hashtags, no engagement questions; an entry may end unresolved. */
+  .jlist{list-style:none;margin:0;padding:0;}
+  .jentry{padding:var(--s-48) 0;border-bottom:1px solid var(--rule);}
+  .jentry:first-child{padding-top:0;}
+  .jentry a{display:block;color:inherit;text-decoration:none;}
+  .jentry .caps{color:var(--tinta-soft);}
+  .jtitle{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:clamp(var(--t-31),4vw,var(--t-39));line-height:1.15;margin:var(--s-12) 0 var(--s-16);transition:color .18s ease-out;}
+  .jentry a:hover .jtitle,.jentry a:focus-visible .jtitle{color:var(--laton-on-verde);}
+  .jexcerpt{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-25);line-height:1.4;color:var(--tinta-soft);max-width:44ch;margin:0;}
+  .jpage{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,3fr);gap:var(--s-64);align-items:start;}
+  .jhead .caps{color:var(--tinta-mute);}
+  .jhead h1{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:clamp(var(--t-39),5vw,var(--t-49));line-height:1.1;margin:var(--s-12) 0 var(--s-48);max-width:18ch;}
+  .jbody p{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-25);line-height:1.5;margin:0 0 var(--s-24);max-width:38ch;}
+  .jmargin{margin-top:calc(var(--s-96) + var(--s-64));padding-left:var(--s-24);border-left:1px solid var(--laton-on-verde);}
+  .jmargin p{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:300;font-size:var(--t-20);line-height:1.45;color:var(--tinta-soft);margin:0;}
+  .jmargin .caps{display:block;margin-top:var(--s-8);color:var(--tinta-mute);font-style:normal;}
+  .jnav{display:flex;justify-content:space-between;gap:var(--s-24);margin-top:var(--s-64);padding-top:var(--s-24);border-top:1px solid var(--rule);}
+  .jnav a{display:flex;flex-direction:column;gap:var(--s-4);min-height:44px;max-width:45%;color:var(--on-verde);text-decoration:none;}
+  .jnav a .caps{color:var(--tinta-mute);}
+  .jnav a .jn{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-20);line-height:1.3;}
+  .jnav .newer{margin-left:auto;align-items:flex-end;text-align:right;}
+  .jback{display:inline-flex;align-items:center;min-height:44px;margin-bottom:var(--s-32);color:var(--tinta-soft);text-decoration:none;border-bottom:1px solid var(--rule);}
+  @media (max-width:820px){ .jpage{grid-template-columns:1fr;gap:var(--s-32);} .jmargin{margin-top:0;} }
+
+  /* ---------- INSIDE MY MIND — how she reasons ----------
+     A system that comes apart into its parts, six plan-cabinet drawers, the same system resolved at the
+     end (js/motion.js mind()). Line drawings in Papel on Verde; Latón Claro for what matters; the
+     dark-theme Arcilla only for a reaction or a problem (non-text, 3.77:1 on Verde, 4.75:1 on Hondo).
+     The drawers' compartments are Verde Hondo inside a Verde room — two deep rooms never touch. */
+  .dhead{display:grid;grid-template-columns:56px 1fr;gap:var(--s-24);align-items:baseline;}   /* also About's chapters */
+  .dhead .caps{color:var(--tinta-soft);}
+  .dhead h2{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:clamp(var(--t-31),4vw,var(--t-39));line-height:1.15;margin:0;}
+  .mind-open .kicker{color:var(--tinta-mute);margin-bottom:var(--s-16);}
+  .mind-open .hook{max-width:17ch;margin-bottom:0;}
+  .msys-track{position:relative;margin-top:var(--s-48);}
+  .js .msys-track{height:170svh;}
+  .js .msys-stage{position:sticky;top:16svh;}
+  .msys,.mfig-svg{display:block;width:100%;height:auto;overflow:visible;}
+  .msys .ge,.mfig-graph .ge{fill:none;stroke:var(--on-verde);stroke-width:1.1;opacity:.55;}
+  .msys .gnode circle,.mfig-graph .gnode circle{fill:var(--verde);stroke:var(--on-verde);stroke-width:1.2;}
+  .gl{fill:var(--on-verde);font-family:"Jost",system-ui,sans-serif;font-size:12px;letter-spacing:.16em;text-transform:uppercase;}
+  .gl.small{font-size:11px;}
+  .msys .gnode text{opacity:var(--k,1);}
+  .mind-close .msys{max-width:760px;margin:0 0 var(--s-64);}
+  .mind-close .msys .ge{transition:opacity 900ms var(--ease-out);}
+  .mind-close .msys.quiet .ge{opacity:.3;}
+  .mind-close .turnline{max-width:22ch;}
+  /* drawers: fronts with a brass pull; each opens onto a Verde Hondo compartment */
+  .mdrawer{border-top:1px solid var(--rule);}
+  .mdrawer:last-child{border-bottom:1px solid var(--rule);}
+  .mfront{list-style:none;display:grid;grid-template-columns:56px minmax(0,1fr) 44px;gap:var(--s-24);align-items:center;padding:var(--s-32) 0;cursor:pointer;min-height:44px;}
+  .mfront::-webkit-details-marker{display:none;}
+  .mnum{color:var(--tinta-mute);}
+  .mfront-t{display:flex;flex-direction:column;gap:var(--s-4);}
+  .mtitle{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:clamp(var(--t-31),4vw,var(--t-39));line-height:1.15;}
+  .mteaser{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:300;font-size:var(--t-20);color:var(--tinta-soft);}
+  .mpull{position:relative;width:44px;height:1px;background:var(--laton-on-verde);transition:transform 320ms var(--ease-out);}
+  .mpull::before,.mpull::after{content:"";position:absolute;top:-6px;width:1px;height:7px;background:var(--laton-on-verde);}
+  .mpull::before{left:0;} .mpull::after{right:0;}
+  .mdrawer[open] .mpull{transform:translateX(-10px);}
+  .mbody{background:var(--verde-deep);padding:var(--s-64) var(--s-48) var(--s-96);margin:0 0 var(--s-48);}
+  .js .mdrawer[open] .mbody{animation:mslide 420ms var(--ease-out);}
+  @keyframes mslide{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:none;}}
+  .mlines p{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-25);line-height:1.4;margin:0 0 var(--s-8);max-width:40ch;}
+  .mlines .stack{font-style:italic;color:var(--tinta-soft);}
+  .mlines .stack span + span::before{content:" · ";color:var(--laton-on-verde);font-style:normal;}
+  .midea{margin-top:var(--s-48);}
+  .midea p{font-size:var(--t-31);line-height:1.25;max-width:24ch;}
+  .mgap{height:var(--s-64);}
+  .mprompt{margin:var(--s-64) 0 0;padding-top:var(--s-24);border-top:1px solid var(--rule);font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:300;font-size:var(--t-25);line-height:1.35;color:var(--laton-on-verde);max-width:34ch;}
+  .mpart + .mpart{margin-top:var(--s-96);padding-top:var(--s-48);border-top:1px solid var(--rule);}
+  .mpart-h{color:var(--tinta-mute);margin:0 0 var(--s-24);}
+  .mwords{display:flex;flex-wrap:wrap;gap:var(--s-8) var(--s-24);margin:var(--s-32) 0 var(--s-16);padding:0;list-style:none;}
+  .mwords li{color:var(--laton-on-verde);}
+  .mwords li + li::before{content:"+";margin-right:var(--s-24);color:var(--tinta-mute);}
+  .mfig{margin:var(--s-48) 0 0;max-width:720px;}
+  /* the translation: an idea, its behaviour, its states, its real code — then the thing itself, running */
+  .spec{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-24);margin-top:var(--s-48);}
+  .spec > div{border-top:1px solid var(--rule);padding-top:var(--s-16);min-width:0;}
+  .spec h3,.mnotes h3{margin:0 0 var(--s-12);color:var(--laton-on-verde);}
+  .spec .hand{margin:0;font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:300;font-size:var(--t-25);line-height:1.3;}
+  .spec .hand-l{display:block;}
+  .spec ol{list-style:none;margin:0;padding:0;}
+  .spec li{font-size:var(--t-14);line-height:1.8;color:var(--tinta-soft);}
+  .spec .states li + li::before{content:"↓ ";color:var(--laton-on-verde);}
+  .code{margin:0;white-space:pre-wrap;word-break:break-word;font-family:"Jost",system-ui,sans-serif;font-size:var(--t-12);line-height:1.8;color:var(--on-verde);}
+  .codesrc{display:block;margin-top:var(--s-8);color:var(--tinta-mute);}
+  .prints.mdemo{background:none;padding:var(--s-48) 0 0;overflow:visible;}
+  .mdemo .dset{grid-template-columns:minmax(0,4fr) minmax(0,6fr);margin:0;}
+  .mdemo .dlead{padding-top:var(--s-24);}
+  .mdemo .dlead .caps{color:var(--tinta-mute);margin:0;}
+  .mdemo .print{width:64%;}
+  .js .prints.mdemo.armed .cam{left:32%;}
+  .mnotes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-32);margin-top:var(--s-48);}
+  .mnotes.two{display:block;max-width:40ch;}
+  .mnotes ol{list-style:none;margin:0;padding:0;}
+  .mnotes li{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-20);line-height:1.35;padding:var(--s-8) 0;border-bottom:1px solid var(--rule);}
+  /* each drawing plays once, the first time its drawer opens (armed → s1 → s2 → s3), then holds.
+     Without JS, and under reduced motion, it simply shows its last state. */
+  .mfig-svg path{fill:none;stroke:var(--on-verde);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;}
+  .mfig-svg [pathLength]{stroke-dasharray:1;stroke-dashoffset:0;}
+  .mfig.armed [pathLength]{transition:stroke-dashoffset 900ms var(--ease-out),opacity 600ms var(--ease-out);}
+  .mfig .base{opacity:.4;}
+  /* look closer */
+  .mfig .kring{fill:none;stroke:var(--laton-on-verde);stroke-width:1.4;}
+  .mfig.armed .kring{opacity:0;transition:opacity 500ms var(--ease-out);}
+  .mfig.armed.s2 .kring{opacity:1;}
+  .mfig.armed .mfig-graph .ge{opacity:0;transition:opacity 700ms var(--ease-out);}
+  .mfig.armed.s1 .mfig-graph .ge{opacity:.55;}
+  /* wait before reacting */
+  .mfig .spike{stroke:var(--clay-on-verde);stroke-width:1.6;opacity:.18;}
+  .mfig .gap,.mfig .calm{stroke:var(--laton-on-verde);stroke-width:1.6;}
+  .mfig.armed .spike{opacity:1;stroke-dashoffset:1;transition:stroke-dashoffset 260ms ease-in,opacity 600ms var(--ease-out);}
+  .mfig.armed.s1 .spike{stroke-dashoffset:0;}
+  .mfig.armed.s2 .spike{opacity:.18;}
+  .mfig.armed .gap,.mfig.armed .calm{stroke-dashoffset:1;}
+  .mfig.armed.s2 .gap,.mfig.armed.s3 .calm{stroke-dashoffset:0;}
+  .mfig.armed .gapl,.mfig.armed .resp{opacity:0;transition:opacity 600ms var(--ease-out);}
+  .mfig.armed.s2 .gapl,.mfig.armed.s3 .resp{opacity:1;}
+  /* move authority closer */
+  .mfig .far{stroke-width:1;opacity:.12;}
+  .mfig .near{stroke:var(--laton-on-verde);stroke-width:1.6;}
+  .mfig .frame-b{fill:none;stroke:var(--laton-on-verde);stroke-width:1;opacity:.7;}
+  .mfig .person{fill:var(--on-verde);}
+  .mfig .problem{fill:var(--clay-on-verde);}
+  .mfig .hub circle{fill:none;stroke:var(--on-verde);stroke-width:1.2;opacity:.3;}
+  .mfig .hub text{opacity:.4;}
+  .mfig .q{fill:var(--on-verde);opacity:0;}
+  .mfig.armed .far{opacity:.85;stroke-dashoffset:1;}
+  .mfig.armed.s1 .far{stroke-dashoffset:0;transition-delay:calc(var(--i) * 90ms);}
+  .mfig.armed.s1 .q{opacity:1;transition:opacity 400ms var(--ease-out) calc(500ms + var(--i) * 170ms);}
+  .mfig.armed.s2 .far{opacity:.12;transition-delay:0s;}
+  .mfig.armed.s2 .q{opacity:0;transition-delay:0s;}
+  .mfig.armed .frame-b{opacity:0;transition:opacity 600ms var(--ease-out) calc(var(--i) * 90ms);}
+  .mfig.armed.s2 .frame-b{opacity:.7;}
+  .mfig.armed .near{stroke-dashoffset:1;}
+  .mfig.armed.s2 .near{stroke-dashoffset:0;transition-delay:calc(300ms + var(--i) * 90ms);}
+  .mfig.armed .hub circle,.mfig.armed .hub text{opacity:1;transition:opacity 700ms var(--ease-out);}
+  .mfig.armed.s3 .hub circle{opacity:.3;} .mfig.armed.s3 .hub text{opacity:.4;}
+  /* make information travel */
+  .mfig .parcel{stroke-width:1.3;}
+  .mfig .lots{stroke-width:.8;opacity:.5;}
+  .mfig .missing{stroke:var(--laton-on-verde);stroke-width:2;}
+  .mfig .disc circle{fill:var(--on-verde);}
+  .mfig .disc .lit{fill:var(--laton-on-verde);}
+  .mfig .link{stroke-width:.8;opacity:.45;}
+  .mfig .packet{fill:var(--laton-on-verde);opacity:0;}
+  .mfig.armed .disc{opacity:0;transition:opacity 500ms var(--ease-out) calc(var(--i) * 140ms);}
+  .mfig.armed.s1 .disc{opacity:1;}
+  .mfig.armed .packet{opacity:1;transform:none;transition:transform 1100ms var(--ease-out),opacity 400ms var(--ease-out);}
+  .mfig.armed.s2 .packet{transform:translate(var(--tx),var(--ty));}
+  .mfig.armed.s3 .packet{opacity:0;}
+  .mfig.armed .missing{stroke-dashoffset:1;}
+  .mfig.armed.s3 .missing{stroke-dashoffset:0;}
+  /* build with AI: repetition moves out, judgment stays close */
+  .mfig .core{fill:none;stroke:var(--laton-on-verde);stroke-width:1.2;}
+  .mfig .orbit{fill:none;stroke:var(--on-verde);opacity:.22;}
+  .mfig .loops{fill:none;stroke:var(--on-verde);stroke-dasharray:2 7;opacity:.3;}
+  .mfig .task{transform:translate(var(--dx),var(--dy));}
+  .mfig .task circle{fill:none;stroke:var(--on-verde);stroke-width:1.2;}
+  .mfig .kept text{fill:var(--laton-on-verde);}
+  .mfig.armed .task{transform:none;transition:transform 900ms var(--ease-out) calc(var(--i) * 170ms);}
+  .mfig.armed .task circle{fill:var(--on-verde);transition:fill 400ms var(--ease-out) calc(700ms + var(--i) * 170ms);}
+  .mfig.armed.s2 .task{transform:translate(var(--dx),var(--dy));}
+  .mfig.armed.s2 .task circle{fill:none;}
+  .mfig.armed .loops{opacity:0;transition:opacity 900ms var(--ease-out) 1200ms;}
+  .mfig.armed.s2 .loops{opacity:.3;}
+  .mfig.armed .kept{opacity:0;transition:opacity 700ms var(--ease-out) calc(var(--i) * 130ms);}
+  .mfig.armed.s3 .kept{opacity:1;}
+  /* protect the decision */
+  .mfig .cond path{stroke:var(--laton-on-verde);}
+  .mfig .dmark{fill:var(--laton-on-verde);transform:translateX(400px);}
+  .mfig .word{fill:var(--on-verde);}
+  .mfig .w1{transform:translateX(-150px);} .mfig .w2{transform:translateX(150px);}
+  .mfig.armed .cond{opacity:.2;transition:opacity 500ms var(--ease-out) calc(var(--i) * 270ms);}
+  .mfig.armed.s1 .cond{opacity:1;}
+  .mfig.armed .dmark{transform:none;transition:transform 1400ms var(--ease-out);}
+  .mfig.armed.s2 .dmark{transform:translateX(400px);}
+  .mfig.armed .w1,.mfig.armed .w2{transform:none;transition:transform 1100ms var(--ease-out);}
+  .mfig.armed.s3 .w1{transform:translateX(-150px);} .mfig.armed.s3 .w2{transform:translateX(150px);}
+  @media (max-width:820px){
+    .mbody{padding:var(--s-48) var(--s-24) var(--s-64);}
+    .spec,.mnotes{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .mdemo .dset{grid-template-columns:1fr;}
+  }
+  @media (max-width:520px){
+    .mfront{grid-template-columns:40px minmax(0,1fr);gap:var(--s-16);}
+    .mpull{display:none;}
+    .spec,.mnotes{grid-template-columns:1fr;}
+    .gl{font-size:19px;} .gl.small{font-size:18px;}
+    .mdemo .print{width:86%;}
+  }
+  @media (prefers-reduced-motion:reduce){ .mfig *,.msys *{transition:none!important;} .js .mdrawer[open] .mbody{animation:none;} }
+
+  /* ---------- ABOUT — contact ---------- */
+  .threshold .seal{width:min(220px,55%);height:auto;color:var(--tinta);justify-self:center;}
+  .contact{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s-16);margin-top:var(--s-32);}
+  .contact .big{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-31);color:var(--tinta);text-decoration:none;border-bottom:1px solid var(--laton);min-height:44px;}
+  .contact .caps{color:var(--tinta-soft);margin-top:var(--s-8);}
+
+  /* ---------- FOOTER ---------- */
+  footer{background:var(--verde-deep);border-top:1px solid var(--rule);padding:var(--s-64) 0 var(--s-48);}
+  footer .inner{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s-16);}
+  footer .mk{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-20);letter-spacing:.3em;text-transform:uppercase;}
+  footer .byline{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:300;font-size:var(--t-20);color:var(--tinta-soft);margin:0;}
+  .fnav{display:flex;flex-wrap:wrap;gap:0 var(--s-24);}
+  .fnav a{color:var(--tinta-soft);text-decoration:none;display:inline-flex;align-items:center;min-height:44px;border-bottom:1px solid transparent;transition:color .18s ease-out,border-color .18s ease-out;}
+  .fnav a:hover{color:var(--tinta);border-bottom-color:var(--laton);}
+  .flinks{display:flex;flex-wrap:wrap;gap:0 var(--s-32);align-items:center;}
+  .flinks a.li{font-family:"Jost",sans-serif;font-size:var(--t-16);color:var(--tinta);text-decoration:none;border-bottom:1px solid var(--laton);}
+  footer .fine{color:var(--tinta-soft);}
+  /* an email address is read, not scanned: lowercase, lightly tracked */
+  .mail{font-family:"Jost",sans-serif;font-weight:400;font-size:var(--t-14);letter-spacing:.06em;text-transform:none;color:var(--tinta);text-decoration:none;border-bottom:1px solid var(--laton);display:inline-flex;align-items:center;min-height:44px;}
+  .world .mail{color:var(--on-verde);}
+
+  /* ---------- THE AERODROME ----------
+     Without JS or WebGL: the words in order on Verde Hondo. .live: a 1500svh track with a sticky stage,
+     the words as panels that come and go one at a time. .still (reduced motion): the finished model and
+     its faint plan in a frame, the words beneath. Panels are Verde Hondo at 88% — no gradient, no shadow. */
+  .aero{background:var(--verde-deep);color:var(--on-verde);}
+  .aero-view{display:none;}
+  .aero-text{max-width:var(--maxw);margin:0 auto;padding:calc(var(--s-96) + 40px) 7vw var(--s-96);display:grid;gap:var(--s-48);}
+  .aero-line{margin:0;font-family:"Cormorant Garamond",serif;font-weight:300;font-size:clamp(var(--t-31),3.4vw,var(--t-49));line-height:1.12;max-width:22ch;color:var(--on-verde);}
+  .aero .label{margin:0;}
+  .aero .label .wipe{background:var(--laton-on-verde);transform:none;}
+  .aero .label .name{color:var(--on-verde);}
+  .aero .label .facts{color:var(--laton-on-verde);}
+  .aero-states{margin-top:var(--s-12);min-height:18px;}
+  .aero-state{display:none;color:var(--on-verde);}
+  .aero-state.on{display:inline;}
+  .aero-kicker{margin:0 0 var(--s-8);color:var(--laton-on-verde);}
+  .aero-idname{margin:0;font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-25);line-height:1.2;color:var(--on-verde);}
+  .aero-authors,.aero-where{margin:var(--s-8) 0 0;font-size:var(--t-14);line-height:1.5;color:var(--on-verde);max-width:52ch;}
+  .aero-read{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:var(--s-4) var(--s-16);min-height:44px;margin-top:var(--s-16);padding-top:var(--s-12);color:var(--on-verde);text-decoration:none;border-bottom:1px solid var(--laton-on-verde);}
+  .aero-read span:first-child{font-family:"Cormorant Garamond",serif;font-size:var(--t-20);}
+  .aero-read .caps{color:var(--laton-on-verde);}
+  .aero-read:hover{border-bottom-color:var(--on-verde);}
+  .aero-read:focus-visible{outline:2px solid var(--laton-on-verde);outline-offset:3px;}
+  .aero-plan path{stroke-width:1.2;stroke-dasharray:1;stroke-dashoffset:1;}
+  .aero-plan path.cl{stroke-width:1;}
+  .aero-plane path{fill:var(--verde-deep);stroke:var(--on-verde);stroke-width:1.1;stroke-dasharray:none;stroke-dashoffset:0;}
+  .aero-plane{opacity:0;}
+
+  .aero.live .aero-track{height:1800svh;position:relative;}
+  .aero.live .aero-stage{position:sticky;top:0;height:100svh;overflow:hidden;}
+  .aero.live .aero-view,.aero.still .aero-view{display:block;}
+  .aero.live .aero-view{position:absolute;inset:0;}
+  .aero-canvas,.aero-canvas canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  .aero-veil{position:absolute;inset:0;background:var(--verde-deep);pointer-events:none;}
+  .aero-plan{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;}
+  .aero.live .aero-text{position:absolute;inset:0;max-width:none;padding:0;display:block;pointer-events:none;}
+  .aero.live .aero-item{position:absolute;left:7vw;bottom:10svh;max-width:min(540px,86vw);opacity:0;transform:translateY(8px);
+    transition:opacity 420ms var(--ease-out),transform 420ms var(--ease-out);}
+  .aero.live .aero-item.on{opacity:1;transform:none;}
+  .aero.live .aero-panel{background:color-mix(in srgb,var(--verde-deep) 88%,transparent);padding:var(--s-24) var(--s-32);border-radius:2px;}
+  .aero.live .aero-flight{left:auto;right:7vw;bottom:auto;top:calc(64px + 4svh);}
+  .aero.live .aero-id.on{pointer-events:auto;}
+  .aero.live .aero-last{left:0;right:0;bottom:auto;top:24svh;max-width:none;text-align:center;}
+  .aero.live .aero-last .aero-line{margin:0 auto;color:var(--on-verde);}
+  .aero.live .aero-flight:not(.on) .aero-state{display:none;}
+
+  .aero.still .aero-view{position:relative;height:72svh;}
+  .aero.still .aero-last{order:9;}
+
+  @media (max-width:720px){
+    .aero.live .aero-item{left:var(--s-16);right:var(--s-16);bottom:var(--s-16);max-width:none;}
+    .aero.live .aero-panel{padding:var(--s-16) var(--s-24);}
+    .aero.live .aero-flight{top:72px;bottom:auto;}
+    .aero.live .aero-last{top:18svh;}
+    .aero-line{font-size:var(--t-31);}
+  }
+  @media (prefers-reduced-motion:reduce){ .aero.live .aero-item{transition:none;} }
+
+  /* the names on the map (El Dorado, Bogotá…), placed each frame by aerodrome-3d/main.js */
+  .aero-geo{display:none;}
+  .aero.live .aero-geo{display:block;position:absolute;left:0;top:0;opacity:0;transition:opacity 420ms var(--ease-out);pointer-events:none;}
+  .aero.live .aero-geo.on{opacity:1;}
+  .aero-geo > span{display:block;transform:translate(-50%,calc(-100% - 12px));white-space:nowrap;padding:6px 10px;border-radius:2px;
+    background:color-mix(in srgb,var(--verde-deep) 88%,transparent);color:var(--on-verde);}
+  .aero-geo::after{content:"";position:absolute;left:-3px;top:-3px;width:6px;height:6px;background:var(--laton-on-verde);}
+  @media (max-width:720px){ .aero-geo[data-geo="river"],.aero-geo[data-geo="cerros"]{display:none!important;} }
+
+  /* ---------- THE AERODROME — technical sheet (Papel, a drawing's title block) ---------- */
+  .aero-sheet .sheet-h{font-family:"Cormorant Garamond",serif;font-weight:300;font-size:clamp(var(--t-31),3vw,var(--t-39));line-height:1.15;margin:var(--s-16) 0 var(--s-48);max-width:24ch;color:var(--tinta);}
+  .sheet-grid{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:var(--s-64);align-items:start;}
+  .sheet{margin:0;border-top:1px solid var(--laton);}
+  .srow{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,7fr);gap:var(--s-16);padding:var(--s-12) 0;border-bottom:1px solid var(--rule);}
+  .srow dt{color:var(--tinta-soft);padding-top:5px;}
+  .srow dd{margin:0;display:flex;flex-direction:column;gap:var(--s-4);}
+  .sv{font-family:"Cormorant Garamond",serif;font-weight:400;font-size:var(--t-20);line-height:1.25;color:var(--tinta);}
+  .ssrc{color:var(--tinta-soft);}
+  .sheet-figs{display:grid;gap:var(--s-48);}
+  .sfig{margin:0;}
+  .sfig svg{display:block;width:100%;height:auto;color:var(--tinta);}
+  .sfig text{font-family:"Jost",sans-serif;stroke:none;fill:var(--tinta);}
+  .sfig text.pn{font-size:15px;}
+  .sfig text.pv{font-size:12px;letter-spacing:.12em;fill:var(--tinta-soft);}
+  .sheet-note{margin:var(--s-48) 0 0;font-size:var(--t-14);line-height:1.6;color:var(--tinta-soft);max-width:70ch;}
+  @media (max-width:760px){ .sheet-grid{grid-template-columns:1fr;gap:var(--s-48);} .srow{grid-template-columns:1fr;gap:var(--s-4);} }
+
+  /* ---------- ABOUT — scroll cue: quiet label, a line that extends once, gone once the reader scrolls ---------- */
+  .scroll-cue{display:none;}
+  .js .scroll-cue{display:flex;flex-direction:column;align-items:center;gap:var(--s-8);position:fixed;left:50%;bottom:var(--s-24);z-index:4;
+    transform:translateX(-50%);opacity:0;pointer-events:none;transition:opacity 420ms var(--ease-out);}
+  .scroll-cue .caps{color:var(--tinta-soft);}
+  .scroll-cue i{display:block;width:1px;height:40px;background:var(--laton-on-verde);transform:scaleY(0);transform-origin:top;transition:transform 900ms var(--ease-out) 300ms;}
+  .js .scroll-cue.on{opacity:1;}
+  .js .scroll-cue.on i{transform:none;}
+  .js .scroll-cue.gone{opacity:0;}
+  @media (prefers-reduced-motion:reduce){ .scroll-cue i{transition:none;transform:none;} }
+
+  /* ---------- INSIDE MY MIND — Build with AI (her iteration): system leverage, creative leverage ----------
+     The pipeline: a person tied to a task done by hand and done again (dark-theme Arcilla tethers), the
+     task becoming a skill, a schedule, a system; the tethers let go and the person rises to the decision. */
+  .mfig .pst rect{fill:none;stroke:var(--on-verde);stroke-width:1.2;}
+  .mfig .plink,.mfig .ploop{fill:none;stroke:var(--laton-on-verde);stroke-width:1.2;stroke-dasharray:1;}
+  .mfig .ptethers path{fill:none;stroke:var(--clay-on-verde);stroke-width:1.2;}
+  .mfig .pdot{fill:var(--on-verde);}
+  .mfig .pdec text{fill:var(--laton-on-verde);}
+  .mfig.armed .pst,.mfig.armed .ptethers{opacity:0;transition:opacity 500ms var(--ease-out) calc(var(--i,0) * 140ms);}
+  .mfig.armed .pdot{opacity:0;transition:opacity 500ms var(--ease-out),transform 1100ms var(--ease-out);}
+  .mfig.armed.s1 .pst:not(.late),.mfig.armed.s1 .ptethers,.mfig.armed.s1 .pdot{opacity:1;}
+  .mfig.armed .plink,.mfig.armed .ploop{stroke-dashoffset:1;transition:stroke-dashoffset 600ms var(--ease-out) calc(var(--i,0) * 160ms);}
+  .mfig.armed.s2 .pst.late{opacity:1;}
+  .mfig.armed.s2 .plink,.mfig.armed.s2 .ploop{stroke-dashoffset:0;}
+  .mfig.armed.s3 .ptethers{opacity:0;}
+  .mfig.armed.s3 .pdot{transform:translate(258px,-34px);}
+  .mfig.armed .pdec{opacity:0;transition:opacity 700ms var(--ease-out) 700ms;}
+  .mfig.armed.s3 .pdec{opacity:1;}
+  /* two real examples: the idea as she said it → behaviour → code read from js/motion.js → the experience */
+  .aiex{margin-top:var(--s-64);padding-top:var(--s-32);border-top:1px solid var(--rule);}
+  .aiex-head{display:grid;grid-template-columns:56px 1fr;gap:var(--s-24);align-items:baseline;}
+  .aiex-t{margin:0;font-family:"Cormorant Garamond",serif;font-weight:300;font-size:var(--t-31);line-height:1.15;}
+  .aichain{list-style:none;display:flex;flex-wrap:wrap;gap:var(--s-8) var(--s-16);margin:var(--s-24) 0 0;padding:0;}
+  .aichain li{color:var(--laton-on-verde);}
+  .aichain li + li::before{content:"→";margin-right:var(--s-16);color:var(--tinta-mute);}
+  .aiex .spec{grid-template-columns:minmax(0,4fr) minmax(0,4fr) minmax(0,5fr);}
+  .aiex .spec h4{margin:0 0 var(--s-12);color:var(--laton-on-verde);font-weight:400;}
+  .aiex .spec .list li + li::before{content:"↓ ";color:var(--laton-on-verde);}
+  .aiex-go{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s-8);margin:var(--s-32) 0 0;}
+  .aiex-go .caps{color:var(--tinta-mute);}
+  @media (max-width:820px){ .aiex .spec{grid-template-columns:1fr;} }
+
+  /* ---------- THE PRACTICE — studies (her iteration, 2026-09-14) ----------
+     Every drawing plays once (armed → s1 → s2 → s3, js/motion.js practice()) and holds. */
+  /* the opening: a tower that grows like a plant, drawn in build order */
+  .tower{margin:0;}
+  .tower .tower-svg{max-height:78svh;width:auto;max-width:100%;margin:0 auto;}
+  .tower path{fill:none;stroke:var(--on-verde);stroke-linecap:round;}
+  .tower .cl{stroke:var(--laton-on-verde);stroke-width:1;opacity:.6;stroke-dasharray:1;}
+  .tower .found path{stroke-width:1.3;}
+  .tower .found path[pathLength]{stroke-dasharray:1;}
+  .tower .floors path{stroke-width:.8;opacity:.28;}
+  .tower .mulls path{stroke-width:.7;opacity:.22;}
+  .tower .mulls .grid{opacity:.45;stroke-width:.9;}
+  .tower .edge{stroke-width:1.4;stroke-dasharray:1;}
+  .tower .leaf{stroke:var(--laton-on-verde);stroke-width:1.2;stroke-dasharray:1;}
+  .tower .spire{stroke-width:1.2;stroke-dasharray:1;}
+  .tower .label{margin-top:var(--s-16);}
+  /* her ask (2026-09-15): from sand all the way up, in seven stages — the desert, the foundation, the floors
+     climbing beside the cranes, the setbacks, the spire, the clouds, and the city that arrived around it */
+  .tower .dig path{stroke-width:1.1;opacity:.55;}
+  .tower .dig path[pathLength]{stroke-dasharray:1;}
+  .tower .crane path{stroke:var(--laton-on-verde);stroke-width:1;opacity:.75;}
+  .tower .crane .lat{stroke-width:.7;opacity:.4;}
+  .tower .clouds path{stroke:var(--on-verde);stroke-width:1;opacity:.4;}
+  .tower .city path{stroke:var(--on-verde);stroke-width:1;opacity:.3;}
+  .tower.armed .cl,.tower.armed .dig path[pathLength],.tower.armed .found path[pathLength],.tower.armed .edge,.tower.armed .spire{stroke-dashoffset:1;}
+  .tower.armed .dig,.tower.armed .found,.tower.armed .cranes,.tower.armed .clouds,.tower.armed .city{opacity:0;transition:opacity 250ms var(--ease-out);}
+  .tower.armed .dig path[pathLength]{transition:stroke-dashoffset 300ms var(--ease-out);}
+  .tower.armed.s2 .dig,.tower.armed.s2 .found{opacity:1;}
+  .tower.armed.s2 .dig path[pathLength],.tower.armed.s2 .found path[pathLength]{stroke-dashoffset:0;}
+  .tower.armed .found path[pathLength]{transition:stroke-dashoffset 300ms var(--ease-out) 80ms;}
+  .tower.armed .cl{transition:stroke-dashoffset 380ms var(--ease-out);}
+  .tower.armed.s3 .cl{stroke-dashoffset:0;}
+  .tower.armed.s3 .cranes{opacity:1;}
+  .tower.armed .floors path,.tower.armed .mulls path{opacity:0;transition:opacity 220ms var(--ease-out) calc(var(--i) * 12ms);}
+  .tower.armed.s3 .floors.lo path{opacity:.28;}
+  .tower.armed .edge{transition:stroke-dashoffset 420ms var(--ease-out) calc(var(--i) * 40ms);}
+  .tower.armed.s3 .edge{stroke-dashoffset:0;}
+  .tower.armed.s4 .floors path{opacity:.28;}
+  .tower.armed.s4 .mulls .grid{opacity:.45;}
+  .tower.armed .spire{transition:stroke-dashoffset 300ms var(--ease-out);}
+  .tower.armed.s5 .spire{stroke-dashoffset:0;}
+  .tower.armed.s6 .clouds{opacity:1;}
+  .tower.armed.s6 .cranes{opacity:0;}
+  .tower.armed.s7 .city{opacity:1;}
+  /* underwriting: one project, the questions that have to hold around it */
+  .pfig .uprop rect,.pfig .uprop path{fill:none;stroke:var(--on-verde);stroke-width:1.3;}
+  .pfig .uspoke{fill:none;stroke:var(--laton-on-verde);stroke-width:1.1;stroke-dasharray:1;}
+  .pfig .ulens circle{fill:var(--on-verde);}
+  .pfig.armed .uprop{opacity:0;transition:opacity 600ms var(--ease-out);}
+  .pfig.armed.s1 .uprop{opacity:1;}
+  .pfig.armed .uspoke{stroke-dashoffset:1;transition:stroke-dashoffset 500ms var(--ease-out) calc(var(--i) * 110ms);}
+  .pfig.armed.s2 .uspoke{stroke-dashoffset:0;}
+  .pfig.armed .ulens circle,.pfig.armed .ulab{opacity:0;transition:opacity 500ms var(--ease-out) calc(var(--i) * 110ms);}
+  .pfig.armed.s2 .ulens circle,.pfig.armed.s3 .ulab{opacity:1;}
+  .uwq{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-16) var(--s-32);margin:var(--s-48) 0 0;}
+  .uwq > div{border-top:1px solid var(--rule);padding-top:var(--s-12);}
+  .uwq dt{color:var(--laton-on-verde);margin-bottom:var(--s-4);}
+  .uwq dd{margin:0;font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:300;font-size:var(--t-20);line-height:1.35;}
+  @media (max-width:520px){ .uwq{grid-template-columns:1fr;} }
+  /* a building read four ways */
+  .pfig .bground,.pfig .bshell,.pfig .bfloor,.pfig .bdoor{fill:none;stroke:var(--on-verde);stroke-width:1.2;}
+  .pfig .bfloor{opacity:.5;}
+  .pfig .win{fill:none;stroke:var(--on-verde);stroke-width:1;opacity:.7;}
+  .pfig .win.vac{stroke:var(--clay-on-verde);opacity:1;}
+  .pfig .phys{fill:none;stroke:var(--laton-on-verde);stroke-width:1.4;}
+  .pfig .phys.mep{stroke-dasharray:4 4;}
+  .pfig .blens path{fill:none;stroke:var(--laton-on-verde);opacity:.4;}
+  .pfig .noi rect{fill:var(--on-verde);opacity:.35;}
+  .pfig .noi .noi-e{fill:var(--clay-on-verde);opacity:.8;}
+  .pfig .resident{fill:var(--laton-on-verde);}
+  .pfig.armed .blens,.pfig.armed .phys,.pfig.armed .noi,.pfig.armed .resident{opacity:0;transition:opacity 700ms var(--ease-out);}
+  .pfig.armed.s1 .l1,.pfig.armed.s1 .phys,.pfig.armed.s2 .l2,.pfig.armed.s3 .l3,.pfig.armed.s3 .noi,.pfig.armed.s3 .resident{opacity:1;}
+  /* markets: a restless story straightening into a decision */
+  .pfig .rstory{fill:none;stroke:var(--on-verde);stroke-width:1.4;stroke-dasharray:1;}
+  .pfig .rnode circle{fill:var(--verde);stroke:var(--on-verde);stroke-width:1.2;}
+  .practice-s.hondo .pfig .rnode circle{fill:var(--verde-deep);}
+  .pfig .rdec circle{fill:var(--laton-on-verde);stroke:var(--laton-on-verde);}
+  .pfig .rdec text{fill:var(--laton-on-verde);}
+  .pfig.armed .rstory{stroke-dashoffset:1;transition:stroke-dashoffset 1600ms var(--ease-out);}
+  .pfig.armed.s1 .rstory{stroke-dashoffset:0;}
+  .pfig.armed .rnode{opacity:0;transition:opacity 500ms var(--ease-out) calc(var(--i) * 160ms);}
+  .pfig.armed.s2 .rnode:not(.rdec),.pfig.armed.s3 .rdec{opacity:1;}
+  /* statistics: context changes a number */
+  .pfig .crange{fill:var(--on-verde);opacity:.12;}
+  .pfig .crisk{fill:var(--laton-on-verde);opacity:.16;}
+  .pfig .cgrowth{fill:none;stroke:var(--laton-on-verde);stroke-width:1.3;stroke-dasharray:6 5;}
+  .pfig .ctime path{fill:none;stroke:var(--on-verde);opacity:.6;}
+  .pfig .cprice{fill:var(--clay-on-verde);}
+  .pfig.armed .crange,.pfig.armed .clab1,.pfig.armed .crisk,.pfig.armed .cgrowth,.pfig.armed .clab2,.pfig.armed .ctime{opacity:0;transition:opacity 800ms var(--ease-out);}
+  .pfig.armed.s1 .crange{opacity:.12;}
+  .pfig.armed.s1 .clab1,.pfig.armed.s2 .cgrowth,.pfig.armed.s2 .clab2,.pfig.armed.s3 .ctime{opacity:1;}
+  .pfig.armed.s2 .crisk{opacity:.16;}
+
+  .code code{font:inherit;}   /* the UA gives <code> a monospace face; the brand has two families only */
+
+  /* ---------- JOURNAL — drawings (her iteration, 2026-09-14) ----------
+     Each entry carries the drawing that helps explain its idea; it plays once in stages (st1 … st8 revealed by
+     s1 … s8, js/motion.js practice()) and holds. The list shows each drawing small and still. */
+  figure.jfig{margin:var(--s-48) 0;}
+  .jfig .ln{fill:none;stroke:var(--on-verde);stroke-width:1.3;}
+  .jfig .lt{fill:none;stroke:var(--on-verde);stroke-width:1;opacity:.45;}
+  .jfig .la{fill:none;stroke:var(--laton-on-verde);stroke-width:1.4;}
+  .jfig .lc{fill:none;stroke:var(--clay-on-verde);stroke-width:1.4;}
+  .jfig .thick{stroke-width:2.2;}
+  .jfig .road{fill:none;stroke:var(--on-verde);stroke-width:7;opacity:.3;stroke-linecap:round;}
+  .jfig .dash{stroke-dasharray:5 5;}
+  .jfig .dr{stroke-dasharray:1;}
+  .jfig .fa{fill:var(--laton-on-verde);opacity:.2;stroke:none;}
+  .jfig .fv{fill:var(--on-verde);opacity:.1;stroke:none;}
+  .jfig .fc{fill:var(--clay-on-verde);opacity:.25;stroke:none;}
+  .jfig .dot{fill:var(--on-verde);}
+  .jfig .dota{fill:var(--laton-on-verde);}
+  .jfig .dotc{fill:var(--clay-on-verde);}
+  .jfig .gl.acc{fill:var(--laton-on-verde);}
+  .jfig.armed .st1{opacity:0;transition:opacity 700ms var(--ease-out);}
+  .jfig.armed.s1 .st1{opacity:1;}
+  .jfig.armed .st1 .dr{stroke-dashoffset:1;transition:stroke-dashoffset 1000ms var(--ease-out);}
+  .jfig.armed.s1 .st1 .dr{stroke-dashoffset:0;}
+  .jfig.armed .st2{opacity:0;transition:opacity 700ms var(--ease-out);}
+  .jfig.armed.s2 .st2{opacity:1;}
+  .jfig.armed .st2 .dr{stroke-dashoffset:1;transition:stroke-dashoffset 1000ms var(--ease-out);}
+  .jfig.armed.s2 .st2 .dr{stroke-dashoffset:0;}
+  .jfig.armed .st3{opacity:0;transition:opacity 700ms var(--ease-out);}
+  .jfig.armed.s3 .st3{opacity:1;}
+  .jfig.armed .st3 .dr{stroke-dashoffset:1;transition:stroke-dashoffset 1000ms var(--ease-out);}
+  .jfig.armed.s3 .st3 .dr{stroke-dashoffset:0;}
+  .jfig.armed .st4{opacity:0;transition:opacity 700ms var(--ease-out);}
+  .jfig.armed.s4 .st4{opacity:1;}
+  .jfig.armed .st4 .dr{stroke-dashoffset:1;transition:stroke-dashoffset 1000ms var(--ease-out);}
+  .jfig.armed.s4 .st4 .dr{stroke-dashoffset:0;}
+  .jfig.armed .st5{opacity:0;transition:opacity 700ms var(--ease-out);}
+  .jfig.armed.s5 .st5{opacity:1;}
+  .jfig.armed .st5 .dr{stroke-dashoffset:1;transition:stroke-dashoffset 1000ms var(--ease-out);}
+  .jfig.armed.s5 .st5 .dr{stroke-dashoffset:0;}
+  .jfig.armed .st6{opacity:0;transition:opacity 700ms var(--ease-out);}
+  .jfig.armed.s6 .st6{opacity:1;}
+  .jfig.armed .st6 .dr{stroke-dashoffset:1;transition:stroke-dashoffset 1000ms var(--ease-out);}
+  .jfig.armed.s6 .st6 .dr{stroke-dashoffset:0;}
+  .jfig.armed .st7{opacity:0;transition:opacity 700ms var(--ease-out);}
+  .jfig.armed.s7 .st7{opacity:1;}
+  .jfig.armed .st7 .dr{stroke-dashoffset:1;transition:stroke-dashoffset 1000ms var(--ease-out);}
+  .jfig.armed.s7 .st7 .dr{stroke-dashoffset:0;}
+  .jfig.armed .st8{opacity:0;transition:opacity 700ms var(--ease-out);}
+  .jfig.armed.s8 .st8{opacity:1;}
+  .jfig.armed .st8 .dr{stroke-dashoffset:1;transition:stroke-dashoffset 1000ms var(--ease-out);}
+  .jfig.armed.s8 .st8 .dr{stroke-dashoffset:0;}
+
+  .jfig.armed .fadeout{transition:opacity 700ms var(--ease-out);}
+  .jfig.armed.s3 .fadeout{opacity:.25;}
+  .jfig.armed .bx{opacity:0;transition:opacity 500ms var(--ease-out) calc(var(--i) * 220ms);}
+  .jfig.armed.s2 .bx{opacity:1;}
+  .jq{margin:var(--s-32) 0;max-width:44ch;}
+  .jq > div{padding:var(--s-12) 0;border-bottom:1px solid var(--rule);}
+  .jq dt{color:var(--laton-on-verde);margin:0 0 var(--s-4);}
+  .jq dd{margin:0;font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:300;font-size:var(--t-20);line-height:1.35;}
+  .jbody .stack{font-style:italic;color:var(--tinta-soft);}
+  .jphoto{margin:var(--s-48) 0;max-width:560px;}
+  .jentry a{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,220px);gap:var(--s-48);align-items:center;}
+  .jthumb{display:block;opacity:.85;}
+  .jthumb svg{display:block;width:100%;height:auto;}
+  .jthumb.photo img{display:block;width:100%;aspect-ratio:3/2;object-fit:cover;}
+  @media (max-width:640px){ .jentry a{grid-template-columns:1fr;gap:var(--s-24);} .jthumb{max-width:280px;} }
+  @media (prefers-reduced-motion:reduce){ .jfig *{transition:none!important;} }
+
+  /* ---------- her asks (2026-09-14): the Aerodrome's keep-scrolling tab and credit; the airplane moves right ---------- */
+  .aero:not(.live) .aero-more{display:none;}
+  .aero-credit{margin:var(--s-16) 0 0;color:var(--laton-on-verde);letter-spacing:.24em;}
+  .aero.live .aero-last .aero-credit{text-align:center;}
+  /* Home about-me: the text column was carrying too much — the margin airplane flies in the right column,
+     beside the aerodrome lines; on one column it stays above them */
+  @media (min-width:821px){
+    .meet .bio-thesis{position:relative;}
+    .js .meet .bio-thesis .mplane{position:absolute;top:18%;left:calc(100% + var(--s-24));width:360px;margin:0;}
+  }
+
+  /* her ask: the keep-scrolling tab names what is about to happen — a reason to keep going (The Work, The Aerodrome).
+     Verde Hondo italic on the tab's Papel; the lines cross-fade as the story moves on. */
+  .js .ws-more{flex-wrap:wrap;max-width:min(380px,84vw);padding:var(--s-12) var(--s-16);row-gap:var(--s-8);}
+  .ws-more-next{display:grid;flex-basis:100%;}
+  .ws-more-next span{grid-area:1/1;font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:400;font-size:var(--t-20);line-height:1.25;color:#16352A;
+    opacity:0;transform:translateY(4px);transition:opacity 420ms var(--ease-out),transform 420ms var(--ease-out);}
+  .ws-more-next span.on{opacity:1;transform:none;}
+  @media (max-width:720px){
+    .ws-more-next span{font-size:var(--t-16);}
+    /* her ask: the tab stays bottom right, as on The Work; the notes sit above it, the flight note at the top */
+    .aero.live .aero-item:not(.aero-flight):not(.aero-last){bottom:calc(3svh + var(--more-h,112px));}
+  }
+
+  /* ---------- FOOTER — ownership and an invitation (her ask, 2026-09-14) ----------
+     Quiet and legible, in the footer's own system: a hairline, the © line in tracked caps, one sentence in
+     Tinta Suave, the invitation with its link on a Latón rule. No box, no fine print below 14px. */
+  .owner{margin-top:var(--s-32);padding-top:var(--s-24);border-top:1px solid var(--rule);max-width:62ch;display:flex;flex-direction:column;gap:var(--s-8);}
+  .owner p{margin:0;}
+  .owner-c{font-family:"Jost",sans-serif;font-size:var(--t-12);letter-spacing:.24em;text-transform:uppercase;color:var(--tinta);}
+  .owner-t,.owner-ask{font-family:"Jost",sans-serif;font-weight:300;font-size:var(--t-14);line-height:1.6;color:var(--tinta-soft);}
+  .owner-ask{margin-top:var(--s-8)!important;}
+  .owner-ask a{color:var(--tinta);text-decoration:none;border-bottom:1px solid var(--laton);padding-bottom:1px;}
+  .owner-ask a:hover{border-bottom-color:var(--tinta);}
+
+  /* ---------- RESPONSIVE TYPOGRAPHY (her audit, 2026-09-14) ----------
+     Text is not a fixed graphic: it wraps, grows and loads late. Drawings give way to it (figureKeys in motion.js),
+     screens with notches keep their safe area, tracked capitals loosen less on phones, code stays readable. */
+  .figkey{list-style:none;margin:var(--s-16) 0 0;padding:0;counter-reset:fk;}
+  .figkey[hidden]{display:none;}
+  .figkey li{counter-increment:fk;display:grid;grid-template-columns:2.2em 1fr;gap:var(--s-8);align-items:baseline;padding:var(--s-8) 0;border-bottom:1px solid var(--rule);
+    font-family:"Jost",sans-serif;font-weight:400;font-size:var(--t-14);line-height:1.45;letter-spacing:.08em;text-transform:uppercase;color:var(--tinta);
+    transition:opacity 500ms var(--ease-out);}
+  .figkey li::before{content:counter(fk, decimal-leading-zero);color:var(--tinta-mute);letter-spacing:.04em;}
+  svg.keyed text.gl,svg.keyed text.pn,svg.keyed text.pv{display:none;}
+  .armed .figkey li{opacity:0;}
+  .armed.s1 .figkey li:not([data-st]){opacity:1;}
+  .armed.s1 .figkey li[data-st="1"]{opacity:1;}
+  .armed.s2 .figkey li[data-st="2"]{opacity:1;}
+  .armed.s3 .figkey li[data-st="3"]{opacity:1;}
+  .armed.s4 .figkey li[data-st="4"]{opacity:1;}
+  .armed.s5 .figkey li[data-st="5"]{opacity:1;}
+  .armed.s6 .figkey li[data-st="6"]{opacity:1;}
+  .armed.s7 .figkey li[data-st="7"]{opacity:1;}
+  .armed.s8 .figkey li[data-st="8"]{opacity:1;}
+
+  .wrap{padding-left:max(30px, env(safe-area-inset-left));padding-right:max(30px, env(safe-area-inset-right));}
+  nav.topbar .bar{padding-left:max(30px, env(safe-area-inset-left));padding-right:max(30px, env(safe-area-inset-right));}
+  @media (max-width:640px){
+    .wrap{padding-left:max(20px, env(safe-area-inset-left));padding-right:max(20px, env(safe-area-inset-right));}
+    nav.topbar .bar{padding-left:max(20px, env(safe-area-inset-left));padding-right:max(20px, env(safe-area-inset-right));}
+  }
+  @media (max-width:420px){ .caps{letter-spacing:.18em;} }
+  .code{font-size:13px;max-width:100%;}
+
+  .js .scroll-cue.inline{position:static;transform:none;margin:var(--s-16) auto 0;width:max-content;}
+  /* the bar on the narrowest phones (320–380px): the wordmark, the language switch and the index keep one line */
+  @media (max-width:380px){
+    nav.topbar .bar{gap:var(--s-12);}
+    nav.topbar .brand{letter-spacing:.2em;gap:8px;}
+    nav.topbar .tools{gap:var(--s-12);}
+    .lang-b,.menub{letter-spacing:.14em;}
+    .menub{gap:8px;}
+  }
+  /* a print's name and its facts never touch: the latitude's prime (′) sits taller than the capitals around it */
+  .print figcaption{gap:var(--s-8);}
+  .print figcaption .facts{line-height:1.6;}
+  /* a print's empty box never sits over another print's words: only the paper and its caption take the pointer */
+  .print{pointer-events:none;}
+  .print .paper,.print figcaption{pointer-events:auto;}
+
+  /* ---------- her notes (2026-09-14) ---------- */
+  /* Home on touch screens: the browser holds the stage (sticky) so the drawing never trails a finger; clip, not hidden,
+     so the sticky stage still works */
+  @media (hover:none) and (pointer:coarse){
+    .js .hero{overflow:clip;}
+    .js .hero .stage{position:sticky;top:0;transform:none;will-change:auto;}
+  }
+  /* names on the drawings take turns on small screens (labelWaves in motion.js) */
+  svg.waved text{transition:opacity 320ms var(--ease-out);}
+  svg.waved text.wave-off{opacity:0!important;}
+  /* The Practice opens with the Burj Khalifa rising out of the sand */
+  .tower .sand path{fill:none;stroke:var(--laton-on-verde);stroke-width:1.1;opacity:.75;transition:opacity 300ms var(--ease-out);}
+  .tower.armed.s4 .sand path{opacity:.4;}
+  .tower .mulls .grid{stroke-width:.8;}
+  .tower .spire-g path:not(.spire){stroke:var(--on-verde);stroke-width:.8;opacity:0;transition:opacity 250ms var(--ease-out) 120ms;}
+  .tower.armed.s5 .spire-g path:not(.spire){opacity:.5;}
+
+  .tower-line{margin:var(--s-16) 0 0;max-width:30ch;font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:300;font-size:var(--t-20);line-height:1.4;color:var(--on-verde);}
+  /* less scroll for the same story (her note): The Work and The Aerodrome */
+  .js .ws-track{height:3900svh;}
+  .aero.live .aero-track{height:1200svh;}
+
+  /* About · 08 Drawing: a pencil study in place of a photograph, drawn by the scroll (stage by stage, never back) */
+  .ch-sketch .sketch{margin:0;}
+  .sketch-svg{display:block;width:100%;height:auto;aspect-ratio:4/5;}
+  .sketch-svg path{fill:none;stroke:var(--tinta);stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round;}
+  .sketch-svg .guide-l path{stroke:var(--laton);stroke-width:.8;opacity:.6;}
+  .sketch-svg .shade{stroke-width:.9;opacity:.7;}
+  .js .mfig.sketch.armed .sketch-svg path{stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1100ms var(--ease-out);}
+  .js .mfig.sketch.armed.s1 .st1 path,.js .mfig.sketch.armed.s2 .st2 path,.js .mfig.sketch.armed.s3 .st3 path{stroke-dashoffset:0;}
+
+  /* ---------- her notes (2026-09-14, second round) ---------- */
+  /* Multifamily: no words on the building — the four readings arrive beside it as text that reflows */
+  .pfig .bsvg{display:block;width:100%;max-width:340px;height:auto;margin:0 auto;}
+  .pfig .blenses{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-24) var(--s-32);margin:var(--s-32) 0 0;}
+  .pfig .blenses div{border-top:1px solid color-mix(in srgb,var(--laton-on-verde) 45%,transparent);padding-top:var(--s-12);}
+  .pfig .blenses dt{color:var(--laton-on-verde);margin:0 0 var(--s-8);}
+  .pfig .blenses dd{margin:0;font-size:var(--t-16);line-height:1.45;color:var(--on-verde);}
+  @media (max-width:360px){ .pfig .blenses{grid-template-columns:1fr;} }
+  /* the Journal's stage captions: all of them without motion, one at a time as a drawing builds */
+  .jcaps{list-style:none;margin:var(--s-24) 0 0;padding:0;display:grid;gap:var(--s-8);}
+  .jcaps li{font-size:var(--t-16);line-height:1.45;color:var(--on-verde);max-width:52ch;}
+  .jfig.armed .jcaps li{grid-area:1/1;opacity:0;transition:opacity 160ms linear;}
+  .jfig.armed.s1 .jcaps .c1{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}.jfig.armed.s2 .jcaps .c2{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}.jfig.armed.s3 .jcaps .c3{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}.jfig.armed.s4 .jcaps .c4{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}.jfig.armed.s5 .jcaps .c5{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}.jfig.armed.s6 .jcaps .c6{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}.jfig.armed.s7 .jcaps .c7{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}.jfig.armed.s8 .jcaps .c8{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}
+  .jfig.armed.s2 .jcaps .c1{opacity:0;transition:opacity 160ms linear;}.jfig.armed.s3 .jcaps .c2{opacity:0;transition:opacity 160ms linear;}.jfig.armed.s4 .jcaps .c3{opacity:0;transition:opacity 160ms linear;}.jfig.armed.s5 .jcaps .c4{opacity:0;transition:opacity 160ms linear;}.jfig.armed.s6 .jcaps .c5{opacity:0;transition:opacity 160ms linear;}.jfig.armed.s7 .jcaps .c6{opacity:0;transition:opacity 160ms linear;}.jfig.armed.s8 .jcaps .c7{opacity:0;transition:opacity 160ms linear;}
+  @media (prefers-reduced-motion:reduce){ .jfig.armed .jcaps li{transition:none;} }
+  /* the Burj Khalifa: a plain sentence about land and vision, not a quote */
+  .tower-line{font-family:"Jost",sans-serif;font-style:normal;font-weight:400;font-size:var(--t-16);line-height:1.5;max-width:36ch;}
+  /* the subdivision: once the road and lots arrive, the constraints step back so the layout reads */
+  .jfig .lot{stroke-width:2;}
+  .jfig .roadf{fill:var(--on-verde);opacity:.28;stroke:none;}
+  .jfig .zone{transition:opacity 700ms var(--ease-out);}
+  .jfig.armed.s8 .zone{opacity:.45;}
+  /* the stage it is on, named under the drawing — one at a time, like the Journal's captions */
+  .tcaps{list-style:none;margin:var(--s-16) 0 0;padding:0;display:grid;gap:var(--s-8);}
+  .tcaps li{font-size:var(--t-16);line-height:1.45;color:var(--on-verde);max-width:34ch;}
+  .tower.armed .tcaps li{grid-area:1/1;opacity:0;transition:opacity 160ms linear;}
+  .tower.armed.s1 .tcaps .c1{opacity:1;transition:opacity 260ms var(--ease-out) 100ms;}
+  .tower.armed.s2 .tcaps .c2{opacity:1;transition:opacity 260ms var(--ease-out) 100ms;}
+  .tower.armed.s3 .tcaps .c3{opacity:1;transition:opacity 260ms var(--ease-out) 100ms;}
+  .tower.armed.s4 .tcaps .c4{opacity:1;transition:opacity 260ms var(--ease-out) 100ms;}
+  .tower.armed.s5 .tcaps .c5{opacity:1;transition:opacity 260ms var(--ease-out) 100ms;}
+  .tower.armed.s6 .tcaps .c6{opacity:1;transition:opacity 260ms var(--ease-out) 100ms;}
+  .tower.armed.s7 .tcaps .c7{opacity:1;transition:opacity 260ms var(--ease-out) 100ms;}
+  .tower.armed.s2 .tcaps .c1{opacity:0;transition:opacity 90ms linear;}
+  .tower.armed.s3 .tcaps .c2{opacity:0;transition:opacity 90ms linear;}
+  .tower.armed.s4 .tcaps .c3{opacity:0;transition:opacity 90ms linear;}
+  .tower.armed.s5 .tcaps .c4{opacity:0;transition:opacity 90ms linear;}
+  .tower.armed.s6 .tcaps .c5{opacity:0;transition:opacity 90ms linear;}
+  .tower.armed.s7 .tcaps .c6{opacity:0;transition:opacity 90ms linear;}
+  @media (prefers-reduced-motion:reduce){ .tower.armed .tcaps li{transition:none;} }
+
+  /* ---------- About · under the timeline (her ask, 2026-09-16): keep scrolling, and what is next ----------
+     In the page flow, never over anything. Latón line fills with the flight; the italic line names the next stop,
+     then what is still ahead on the page. No motion of its own beyond the cross-fade. */
+  .tl-more{display:none;}
+  .js .tl-more{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s-8);margin:var(--s-24) 0 0;}
+  .tl-more-next{display:grid;}
+  .tl-more-next span{grid-area:1/1;font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:400;font-size:var(--t-20);line-height:1.3;
+    color:var(--laton-on-verde);opacity:0;transform:translateY(4px);transition:opacity 420ms var(--ease-out),transform 420ms var(--ease-out);}
+  .tl-more-next span.on{opacity:1;transform:none;}
+  .tl-more-row{display:flex;align-items:center;gap:var(--s-12);}
+  .tl-more-row .caps{font-size:var(--t-12);letter-spacing:.24em;color:var(--on-verde);}
+  .tl-more-line{position:relative;display:block;width:72px;height:1px;background:color-mix(in srgb,var(--laton-on-verde) 35%,transparent);overflow:hidden;}
+  .tl-more-line i{position:absolute;inset:0;background:var(--laton-on-verde);transform-origin:left;transform:scaleX(var(--p,0));}
+  @media (prefers-reduced-motion:reduce){ .tl-more-next span{transition:none;} }
