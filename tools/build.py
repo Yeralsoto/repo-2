@@ -618,42 +618,71 @@ def fig_section():
             + svg_label("proportion", "proporción", 320, 334, "middle", "gl small propl")
             + '</svg>')
 
+TOWER_STAGES = [   # her reference (2026-09-15): desert → foundation → rising → shape → height → clouds → icon
+    ("The desert.", "El desierto."),
+    ("The foundation goes in first.", "Primero va la cimentación."),
+    ("It rises floor by floor.", "Sube piso a piso."),
+    ("It takes its shape.", "Toma su forma."),
+    ("The spire climbs higher than it has to.", "La aguja sube más alto de lo necesario."),
+    ("Above the clouds.", "Por encima de las nubes."),
+    ("Land that was desert. Now an address.", "Tierra que era desierto. Ahora una dirección."),
+]
+
 def fig_tower():
-    # her ask (2026-09-14): the Burj Khalifa — the building she loves — as a line study that rises out of the sand as the
-    # reader scrolls: the dunes first, then the piles and the core, then the setbacks climbing, then the spire.
-    cx, base, top, tip = 180, 604, 214, 30
-    tiers, hw0, hw1 = 16, 100, 15
-    level = lambda i: base - (base - top) * (i / tiers) ** 0.95
-    width = lambda i: hw0 + (hw1 - hw0) * (i / tiers) ** 1.25
+    # her ask (2026-09-15): the Burj Khalifa from sand all the way up, in her reference's order — the dunes, the
+    # foundation, the floors climbing with the cranes, the setbacks, the spire, the clouds, and the city that arrived
+    # around it. One line study; the stage it is on is named under the drawing.
+    cx, base, top, tip = 180, 604, 196, 26
+    tiers, hw0, hw1 = 18, 66, 7
+    level = lambda i: base - (base - top) * (i / tiers) ** 0.92
+    width = lambda i: hw0 + (hw1 - hw0) * (i / tiers) ** 1.15
     L = R = hw0
-    lp, rp, wl, wr, floors = [(cx - L, base)], [(cx + R, base)], [], [], ""
+    lp, rp, wl, wr, flo, fhi = [(cx - L, base)], [(cx + R, base)], [], [], "", ""
     for i in range(tiers):
         y0, y1 = level(i), level(i + 1)
-        y = y0 - 11
+        y = y0 - 10
         while y > y1 + 3:
-            floors += f'<path style="--i:{i}" d="M{cx - L + 2:.1f} {y:.1f}H{cx + R - 2:.1f}"/>'
-            y -= 11
+            row = f'<path style="--i:{i}" d="M{cx - L + 2:.1f} {y:.1f}H{cx + R - 2:.1f}"/>'
+            if i < 8: flo += row
+            else: fhi += row
+            y -= 10
         wl.append(f'M{cx - L * 0.45:.1f} {y0:.1f}V{y1:.1f}'); wr.append(f'M{cx + R * 0.45:.1f} {y0:.1f}V{y1:.1f}')
         lp.append((cx - L, y1)); rp.append((cx + R, y1))
         # the three wings step back in turn as it climbs: in elevation the left and the right edge take turns
-        if i % 2 == 0: L = width(i + 1)
-        else: R = width(i + 1)
+        # fewer, deeper setbacks, taking turns — closer to the way the real tower steps back as it climbs
+        if i % 4 == 1: L = width(i + 1)
+        elif i % 4 == 3: R = width(i + 1)
         lp.append((cx - L, y1)); rp.append((cx + R, y1))
     s = min(L, R)
     edge = lambda pts: "M" + "L".join(f"{x:.1f} {y:.1f}" for x, y in pts)
     rings = "".join(f'<path d="M{cx - s * (1 - k) - 1.5:.1f} {top - (top - tip) * k:.1f}H{cx + s * (1 - k) + 1.5:.1f}"/>' for k in (0.18, 0.36, 0.54))
-    piles = "".join(f'<path d="M{x} {base + 2}V{base + 26}"/>' for x in range(96, 270, 22))
-    return ('<svg class="mfig-svg tower-svg" viewBox="0 0 360 660" role="img" '
-            'aria-label="The Burj Khalifa drawn rising from the sand: dunes, then its foundation and core, then its setbacks climbing, then its spire." '
-            'data-es-aria="El Burj Khalifa dibujado saliendo de la arena: dunas, luego su cimentación y su núcleo, luego sus retrocesos subiendo, luego su aguja.">'
+    piles = "".join(f'<path d="M{x} {base + 2}V{base + 26}"/>' for x in range(116, 248, 18))
+    # a crane climbs beside the tower while it is being built, and is gone once it stands
+    def crane(x, y, arm, flip=1):
+        m = f'<path d="M{x} {base}V{y}"/>'
+        lat = "".join(f'<path class="lat" d="M{x - 4} {t}L{x + 4} {t - 22}M{x + 4} {t}L{x - 4} {t - 22}"/>' for t in range(base - 22, y, -44))
+        jib = (f'<path d="M{x - 5} {y}H{x + 5}M{x - 6 - 22 * flip} {y - 6}H{x + arm * flip}"/>'
+               f'<path d="M{x} {y - 22}L{x + arm * flip} {y - 6}M{x} {y - 22}L{x - 6 - 22 * flip} {y - 6}M{x} {y} V{y - 22}"/>'
+               f'<path d="M{x + arm * 0.72 * flip} {y - 6}V{y + 26}"/>')
+        return f'<g class="crane">{m}{lat}{jib}</g>'
+    clouds = "".join(f'<path d="M{a} {y}C{a + 40} {y - 10} {a + 90} {y + 10} {b} {y}"/>' for a, b, y in
+                     [(24, 232, 196), (150, 344, 250), (40, 214, 292)])
+    city = "".join(f'<path d="M{x} 604V{604 - h}H{x + w}V604"/>' for x, w, h in
+                   [(2, 30, 74), (36, 22, 116), (62, 16, 52), (292, 20, 96), (316, 26, 62), (346, 14, 108)])
+    return ('<svg class="mfig-svg tower-svg" viewBox="0 0 360 680" role="img" '
+            'aria-label="The Burj Khalifa drawn from sand to spire: the desert, then the excavation and piles, then the floors climbing beside two cranes, then its setbacks, then the spire, then clouds crossing it, and finally the city around its base." '
+            'data-es-aria="El Burj Khalifa dibujado desde la arena hasta la aguja: el desierto, luego la excavación y los pilotes, luego los pisos subiendo junto a dos grúas, luego sus retrocesos, luego la aguja, luego las nubes cruzándolo y por último la ciudad alrededor de su base.">'
             '<g class="sand"><path d="M0 612C60 600 118 626 188 610S300 594 360 612"/><path d="M0 634C70 622 150 648 232 630S326 622 360 632"/>'
             '<path d="M24 652C90 644 150 660 222 648S318 642 350 650"/></g>'
-            f'<g class="found">{piles}<path pathLength="1" d="M70 604H290"/></g>'
+            f'<g class="dig"><path pathLength="1" d="M84 604L106 650H254L276 604"/><path d="M116 642H244"/></g>'
+            f'<g class="found">{piles}<path pathLength="1" d="M96 604H264"/></g>'
             f'<path class="cl" pathLength="1" d="M{cx} {base}V{tip}"/>'
-            f'<g class="floors">{floors}</g>'
+            f'<g class="floors lo">{flo}</g><g class="floors hi">{fhi}</g>'
             f'<g class="mulls"><path class="grid" d="{"".join(wl)}"/><path class="grid" d="{"".join(wr)}"/></g>'
             f'<path class="edge" style="--i:0" pathLength="1" d="{edge(lp)}"/><path class="edge" style="--i:1" pathLength="1" d="{edge(rp)}"/>'
+            f'<g class="cranes">{crane(84, 268, 62, -1)}{crane(278, 344, 58, 1)}</g>'
             f'<g class="spire-g"><path class="spire" pathLength="1" d="M{cx - s} {top}L{cx - 2} {tip + 60}L{cx} {tip}L{cx + 2} {tip + 60}L{cx + s} {top}"/>{rings}</g>'
+            f'<g class="clouds">{clouds}</g><g class="city">{city}</g>'
             '</svg>')
 
 UW_LENSES = [("Market", "Mercado"), ("Product", "Producto"), ("Land · asset", "Tierra · activo"), ("Cost", "Costo"), ("Operations", "Operación"),
@@ -883,7 +912,8 @@ def practice():
                    [("Everything here is a notebook. I am in no hurry to call it anything else.",
                      "Todo esto es un cuaderno. No tengo prisa por llamarlo de otra manera.")])
     )
-    tower = (f'<figure class="mfig pfig tower" data-seq="300,1300,1500">{fig_tower()}'
+    tcaps = ('<ol class="tcaps">' + "".join(tx("li", en, es, cls=f"c{k + 1}") for k, (en, es) in enumerate(TOWER_STAGES)) + '</ol>')
+    tower = (f'<figure class="mfig pfig tower" data-seq="300,900,1400,1200,1000,900,900" data-span="2.6">{fig_tower()}{tcaps}'
              + label(("Study · Dubai · 828 m", "Estudio · Dubái · 828 m"), ("Burj Khalifa", "Burj Khalifa"), reveal=False)
              + tx("p", "It stands on land that was desert. The land did not change; someone saw what it could hold.",
                   "Se levanta sobre una tierra que era desierto. La tierra no cambió; alguien vio lo que podía sostener.", cls="tower-line")
@@ -949,6 +979,31 @@ def vis_subdivision():
             + f'{lots}</g></svg>')
 
 JCAPS = {   # the stage names of a Journal drawing, shown under it one at a time as the stages arrive
+    "a-five-thousand-dollar-problem": [
+        ("Cost, against time.", "El costo, contra el tiempo."),
+        ("Today the problem is this small.", "Hoy el problema es así de pequeño."),
+        ("Left alone, it does not wait.", "Si se deja solo, no espera."),
+        ("Six months later it is this.", "Seis meses después es esto."),
+        ("The whole saving is in the first window.", "Todo el ahorro está en la primera ventana."),
+    ],
+    "calibrated-not-loud": [
+        ("Everyone in their own lane.", "Cada quien en su carril."),
+        ("The work moves down one of them.", "El trabajo avanza por uno de ellos."),
+        ("Someone steps across in time.", "Alguien cruza a tiempo."),
+        ("Or nobody does, and it breaks at the end.", "O nadie lo hace, y se rompe al final."),
+    ],
+    "the-people-closest-to-the-work": [
+        ("The work, and what is seen on it.", "El trabajo, y lo que se ve en él."),
+        ("The decision sits far from the work.", "La decisión está lejos del trabajo."),
+        ("It comes back to a bigger problem.", "Vuelve a un problema más grande."),
+        ("Closer in, inside a clear frame, it stays small.", "Más cerca, dentro de un marco claro, se queda pequeño."),
+    ],
+    "the-rep-i-had-not-trained": [
+        ("What happens, and what I do next.", "Lo que pasa, y lo que hago después."),
+        ("There is a space between them.", "Hay un espacio entre las dos."),
+        ("One question fits inside it.", "Dentro cabe una pregunta."),
+        ("The answer changes what leaves the room.", "La respuesta cambia lo que sale de la sala."),
+    ],
     "a-subdivision-begins-as-one-shape": [
         ("One parcel. One shape.", "Un terreno. Una sola forma."),
         ("It has frontage on an existing road.", "Tiene frente sobre una vía existente."),
@@ -1228,6 +1283,63 @@ def vis_sides():
               '<path class="lt dash" d="M462 268V202"/><path class="lt dash" d="M336 128H396"/><path class="lt dash" d="M572 74L528 112"/>'
             + lab("rested", "descansada", 462, 288, "middle", "gl small acc") + '</g></svg>')
 
+def vis_early():
+    # a problem costs little while it is small; the curve is what it becomes. Her post, drawn.
+    ticks = "".join(f'<path class="lt" d="M{90 + k * 85} 262V270"/>' for k in range(7))
+    return (svgopen(640, 330, "A problem drawn against time: a small mark at month zero, a curve climbing steeply to a large shape six months later, and an early window where it is still cheap to fix.",
+                    "Un problema dibujado contra el tiempo: una marca pequeña en el mes cero, una curva que sube con fuerza hasta una forma grande seis meses después, y una ventana temprana donde todavía es barato arreglarlo.")
+            + f'<g class="st1"><path class="ln" d="M60 262H600"/>{ticks}'
+            + lab("cost to fix", "costo de arreglarlo", 60, 44, "start", "gl small")
+            + lab("month 0", "mes 0", 90, 292, "middle") + lab("six months", "seis meses", 600, 292, "end") + '</g>'
+            + '<g class="st2"><circle class="dota" cx="90" cy="248" r="6"/></g>'
+            + '<g class="st3"><path class="la dr thick" pathLength="1" d="M90 248C250 246 400 214 574 86"/></g>'
+            + '<g class="st4"><circle class="fa" cx="586" cy="76" r="30"/><circle class="la thick" cx="586" cy="76" r="30"/>'
+            + lab("the same problem", "el mismo problema", 540, 150, "end", "gl small") + '</g>'
+            + '<g class="st5"><path class="fa" d="M62 90H196V262H62Z"/><path class="la dash" d="M196 90V262"/>'
+            + lab("still cheap here", "todavía barato aquí", 70, 112, "start", "gl small acc") + '</g></svg>')
+
+def vis_lanes():
+    # everyone in their lane; the deal holds when someone steps across in time
+    rows = [("attorney", "abogado"), ("engineer", "ingeniero"), ("underwriting", "análisis"), ("broker", "bróker")]
+    lanes = "".join(f'<path class="lt" d="M150 {70 + k * 74}H600"/>{lab(en, es, 140, 74 + k * 74, "end")}' for k, (en, es) in enumerate(rows))
+    return (svgopen(640, 360, "Four lanes running in parallel: attorney, engineer, underwriting and broker. Work moves along the engineer's lane, someone steps across from the attorney's lane and catches it; the uncaught version runs on to a break at the end.",
+                    "Cuatro carriles en paralelo: abogado, ingeniero, análisis y bróker. El trabajo avanza por el carril del ingeniero, alguien cruza desde el carril del abogado y lo detecta; la versión no detectada sigue hasta una ruptura al final.")
+            + f'<g class="st1">{lanes}</g>'
+            + '<g class="st2"><path class="la dr thick" pathLength="1" d="M170 144H360"/><circle class="dota" cx="360" cy="144" r="5"/></g>'
+            + '<g class="st3"><path class="ln dr" pathLength="1" d="M360 144C384 128 392 104 398 74"/><circle class="dot" cx="398" cy="70" r="6"/>'
+            + lab("caught here", "detectado aquí", 412, 48, "start", "gl small acc") + '</g>'
+            + '<g class="st4"><path class="ln dash" d="M368 144H544"/><path class="ln thick" d="M548 130L572 158M572 130L548 158"/>'
+            + lab("or it closes late", "o se cierra tarde", 596, 190, "end", "gl small") + '</g></svg>')
+
+def vis_authority():
+    # the distance between seeing and deciding decides how big the problem gets
+    return (svgopen(640, 340, "The line of the work along the bottom. A small mark is seen on it; one long loop climbs to a distant decision and comes back to a problem that has grown. A short loop beside the work keeps it small, inside a frame.",
+                    "La línea del trabajo abajo. Sobre ella se ve una marca pequeña; un lazo largo sube hasta una decisión lejana y vuelve a un problema que creció. Un lazo corto junto al trabajo lo mantiene pequeño, dentro de un marco.")
+            + '<g class="st1"><path class="ln" d="M60 286H592"/><circle class="dota" cx="170" cy="286" r="5"/>'
+            + lab("the work", "el trabajo", 592, 314, "end") + lab("seen here", "se ve aquí", 170, 262, "middle", "gl small acc") + '</g>'
+            + '<g class="st2"><path class="la dr" pathLength="1" d="M170 286C240 150 372 76 462 76"/><circle class="dot" cx="462" cy="76" r="7"/>'
+            + lab("decided far away", "se decide lejos", 462, 50, "middle", "gl small") + '</g>'
+            + '<g class="st3"><path class="ln dr dash" pathLength="1" d="M462 76C540 150 500 246 430 276"/><circle class="fa" cx="416" cy="282" r="18"/><circle class="la thick" cx="416" cy="282" r="18"/>'
+            + lab("by then it is this", "para entonces es esto", 430, 230, "start", "gl small") + '</g>'
+            + '<g class="st4"><path class="la dr thick" pathLength="1" d="M170 286C196 236 240 234 262 282"/><circle class="dota" cx="266" cy="286" r="6"/>'
+            + '<path class="la dash" d="M104 214H340V306H104Z"/>'
+            + lab("decided here", "se decide aquí", 104, 200, "start", "gl small acc") + '</g></svg>')
+
+def vis_gap():
+    # between what happens and what I do next there is a space; one question fits inside it
+    return (svgopen(640, 300, "What happens, and what I do next, joined at first by one short line. The line opens into a gap; a question sits inside the gap; out of it two different responses lead away.",
+                    "Lo que pasa y lo que hago después, unidos al principio por una línea corta. La línea se abre en un espacio; dentro del espacio hay una pregunta; de ahí salen dos respuestas distintas.")
+            + '<g class="st1"><circle class="dot" cx="86" cy="150" r="7"/><path class="ln" d="M100 150H196"/><circle class="dota" cx="210" cy="150" r="7"/>'
+            + lab("what happens", "lo que pasa", 86, 120, "middle") + '</g>'
+            + '<g class="st2"><path class="la" d="M100 150H420M100 138V162M420 138V162"/><circle class="dota" cx="434" cy="150" r="7"/>'
+            + lab("what I do next", "lo que hago después", 434, 120, "middle")
+            + lab("the space between", "el espacio entre las dos", 240, 190, "middle", "gl small") + '</g>'
+            + '<g class="st3"><circle class="la" cx="260" cy="150" r="22"/>'
+            + lab("the emotion of the moment,", "¿la emoción del momento,", 196, 232, "middle", "gl small acc")
+            + lab("or the reality of it?", "o la realidad del momento?", 196, 256, "middle", "gl small acc") + '</g>'
+            + '<g class="st4"><path class="la dr" pathLength="1" d="M448 146C510 128 540 108 572 92"/><path class="ln dr dash" pathLength="1" d="M448 158C510 176 540 192 572 208"/>'
+            + lab("the one I choose", "la que elijo", 566, 70, "end", "gl small") + lab("the one I obey", "la que obedezco", 566, 240, "end", "gl small") + '</g></svg>')
+
 JVISUALS = {
     "on-learning-to-sit-still": (vis_line, "400,900,900", 0),
     "a-subdivision-begins-as-one-shape": (vis_subdivision, "500,1000,1000,1000,1000,1000,1000,1200", 1),
@@ -1247,6 +1359,10 @@ JVISUALS = {
     "saving-and-standing-still": (vis_compound, "500,1200,1200", 4),
     "not-everyone-wants-to-be-lifted": (vis_energy, "500,1200,1200", 2),
     "the-body-goes-first": (vis_sides, "500,1200,1300", 3),
+    "a-five-thousand-dollar-problem": (vis_early, "500,900,1200,1100,1100", 3),
+    "calibrated-not-loud": (vis_lanes, "500,1100,1100,1100", 1),
+    "the-people-closest-to-the-work": (vis_authority, "500,1100,1200,1200", 3),
+    "the-rep-i-had-not-trained": (vis_gap, "500,1000,1100,1100", 3),
 }
 JPHOTOS = {"notes-on-land": ("assets/photos/turkiye-open-land.jpg", ("Open green land with a fence line and a hill of trees beyond", "Tierra verde abierta con una cerca y una colina de árboles al fondo"),
                              ("Open land", "Tierra abierta"), ("Türkiye · November 2025", "Türkiye · noviembre 2025"), 0)}

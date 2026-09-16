@@ -403,3 +403,16 @@ in less scrolling. Every moment is a fraction of the track, so changing a length
   with a cul-de-sac so every lot has frontage. Stage names are captions under the drawing (`JCAPS`, one at a time),
   never a legend inside the SVG.
 - **Burj Khalifa:** no inspirational quote. The sentence under it is about land and vision, set as plain text.
+
+**Her notes, third round (2026-09-15):**
+- **The Burj Khalifa rises in seven stages**, from her own reference: the desert, the foundation, the floors climbing
+  beside two cranes, the setbacks taking shape, the spire, the clouds, and the city that arrived around it. The stage
+  it is on is named under the drawing (TOWER_STAGES → `.tcaps`, one at a time). A drawing with many stages can ask for
+  more scroll with `data-span` (js/motion.js practice()); the tower uses 2.6.
+- **Four more Journal entries came from her own LinkedIn writing** (a-five-thousand-dollar-problem, calibrated-not-loud,
+  the-people-closest-to-the-work, the-rep-i-had-not-trained), each rewritten for the site with its own drawing and
+  stage captions. LinkedIn itself cannot be read from here (sign-in wall); the source is her saved export
+  `../linkedin posts.docx`. Never paste a post; rewrite it in the Journal's voice, and check the existing 19 entries
+  first — most of her posts are already here.
+- **Arcilla reads as a dark hole on the Verde ground.** For line work on the dark pages use ink or Latón, with a Latón
+  fill for mass; keep Arcilla for one small accent.

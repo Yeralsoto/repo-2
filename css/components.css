@@ -1025,18 +1025,34 @@
   .tower .leaf{stroke:var(--laton-on-verde);stroke-width:1.2;stroke-dasharray:1;}
   .tower .spire{stroke-width:1.2;stroke-dasharray:1;}
   .tower .label{margin-top:var(--s-16);}
-  .tower.armed .cl,.tower.armed .found path[pathLength],.tower.armed .edge,.tower.armed .leaf,.tower.armed .spire{stroke-dashoffset:1;}
+  /* her ask (2026-09-15): from sand all the way up, in seven stages — the desert, the foundation, the floors
+     climbing beside the cranes, the setbacks, the spire, the clouds, and the city that arrived around it */
+  .tower .dig path{stroke-width:1.1;opacity:.55;}
+  .tower .dig path[pathLength]{stroke-dasharray:1;}
+  .tower .crane path{stroke:var(--laton-on-verde);stroke-width:1;opacity:.75;}
+  .tower .crane .lat{stroke-width:.7;opacity:.4;}
+  .tower .clouds path{stroke:var(--on-verde);stroke-width:1;opacity:.4;}
+  .tower .city path{stroke:var(--on-verde);stroke-width:1;opacity:.3;}
+  .tower.armed .cl,.tower.armed .dig path[pathLength],.tower.armed .found path[pathLength],.tower.armed .edge,.tower.armed .spire{stroke-dashoffset:1;}
+  .tower.armed .dig,.tower.armed .found,.tower.armed .cranes,.tower.armed .clouds,.tower.armed .city{opacity:0;transition:opacity 700ms var(--ease-out);}
+  .tower.armed .dig path[pathLength]{transition:stroke-dashoffset 900ms var(--ease-out);}
+  .tower.armed.s2 .dig,.tower.armed.s2 .found{opacity:1;}
+  .tower.armed.s2 .dig path[pathLength],.tower.armed.s2 .found path[pathLength]{stroke-dashoffset:0;}
+  .tower.armed .found path[pathLength]{transition:stroke-dashoffset 900ms var(--ease-out) 400ms;}
   .tower.armed .cl{transition:stroke-dashoffset 1400ms var(--ease-out);}
-  .tower.armed .found path[pathLength]{transition:stroke-dashoffset 900ms var(--ease-out) 500ms;}
-  .tower.armed.s1 .cl,.tower.armed.s1 .found path[pathLength]{stroke-dashoffset:0;}
+  .tower.armed.s3 .cl{stroke-dashoffset:0;}
+  .tower.armed.s3 .cranes{opacity:1;}
   .tower.armed .floors path,.tower.armed .mulls path{opacity:0;transition:opacity 600ms var(--ease-out) calc(var(--i) * 140ms);}
-  .tower.armed.s2 .floors path{opacity:.28;}
-  .tower.armed.s2 .mulls .grid{opacity:.45;}
-  .tower.armed.s3 .mulls .fac{opacity:.22;}
-  .tower.armed .edge,.tower.armed .leaf{transition:stroke-dashoffset 700ms var(--ease-out) calc(var(--i) * 170ms);}
-  .tower.armed.s3 .edge,.tower.armed.s3 .leaf{stroke-dashoffset:0;}
-  .tower.armed .spire{transition:stroke-dashoffset 900ms var(--ease-out) 1100ms;}
-  .tower.armed.s3 .spire{stroke-dashoffset:0;}
+  .tower.armed.s3 .floors.lo path{opacity:.28;}
+  .tower.armed .edge{transition:stroke-dashoffset 1500ms var(--ease-out) calc(var(--i) * 170ms);}
+  .tower.armed.s3 .edge{stroke-dashoffset:0;}
+  .tower.armed.s4 .floors path{opacity:.28;}
+  .tower.armed.s4 .mulls .grid{opacity:.45;}
+  .tower.armed .spire{transition:stroke-dashoffset 900ms var(--ease-out);}
+  .tower.armed.s5 .spire{stroke-dashoffset:0;}
+  .tower.armed.s6 .clouds{opacity:1;}
+  .tower.armed.s6 .cranes{opacity:0;}
+  .tower.armed.s7 .city{opacity:1;}
   /* underwriting: one project, the questions that have to hold around it */
   .pfig .uprop rect,.pfig .uprop path{fill:none;stroke:var(--on-verde);stroke-width:1.3;}
   .pfig .uspoke{fill:none;stroke:var(--laton-on-verde);stroke-width:1.1;stroke-dasharray:1;}
@@ -1250,10 +1266,10 @@
   svg.waved text.wave-off{opacity:0!important;}
   /* The Practice opens with the Burj Khalifa rising out of the sand */
   .tower .sand path{fill:none;stroke:var(--laton-on-verde);stroke-width:1.1;opacity:.75;transition:opacity 900ms var(--ease-out);}
-  .tower.armed.s3 .sand path{opacity:.4;}
+  .tower.armed.s4 .sand path{opacity:.4;}
   .tower .mulls .grid{stroke-width:.8;}
   .tower .spire-g path:not(.spire){stroke:var(--on-verde);stroke-width:.8;opacity:0;transition:opacity 600ms var(--ease-out) 900ms;}
-  .tower.armed.s3 .spire-g path:not(.spire){opacity:.5;}
+  .tower.armed.s5 .spire-g path:not(.spire){opacity:.5;}
   .tower .edge{transition-duration:1500ms!important;}
   .tower-line{margin:var(--s-16) 0 0;max-width:30ch;font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:300;font-size:var(--t-20);line-height:1.4;color:var(--on-verde);}
   /* less scroll for the same story (her note): The Work and The Aerodrome */
@@ -1291,3 +1307,21 @@
   .jfig .roadf{fill:var(--on-verde);opacity:.28;stroke:none;}
   .jfig .zone{transition:opacity 700ms var(--ease-out);}
   .jfig.armed.s8 .zone{opacity:.45;}
+  /* the stage it is on, named under the drawing — one at a time, like the Journal's captions */
+  .tcaps{list-style:none;margin:var(--s-16) 0 0;padding:0;display:grid;gap:var(--s-8);}
+  .tcaps li{font-size:var(--t-16);line-height:1.45;color:var(--on-verde);max-width:34ch;}
+  .tower.armed .tcaps li{grid-area:1/1;opacity:0;transition:opacity 160ms linear;}
+  .tower.armed.s1 .tcaps .c1{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}
+  .tower.armed.s2 .tcaps .c2{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}
+  .tower.armed.s3 .tcaps .c3{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}
+  .tower.armed.s4 .tcaps .c4{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}
+  .tower.armed.s5 .tcaps .c5{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}
+  .tower.armed.s6 .tcaps .c6{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}
+  .tower.armed.s7 .tcaps .c7{opacity:1;transition:opacity 480ms var(--ease-out) 180ms;}
+  .tower.armed.s2 .tcaps .c1{opacity:0;transition:opacity 160ms linear;}
+  .tower.armed.s3 .tcaps .c2{opacity:0;transition:opacity 160ms linear;}
+  .tower.armed.s4 .tcaps .c3{opacity:0;transition:opacity 160ms linear;}
+  .tower.armed.s5 .tcaps .c4{opacity:0;transition:opacity 160ms linear;}
+  .tower.armed.s6 .tcaps .c5{opacity:0;transition:opacity 160ms linear;}
+  .tower.armed.s7 .tcaps .c6{opacity:0;transition:opacity 160ms linear;}
+  @media (prefers-reduced-motion:reduce){ .tower.armed .tcaps li{transition:none;} }

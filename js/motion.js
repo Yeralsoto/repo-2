@@ -666,7 +666,8 @@
         // below the fold: from entering the screen to its upper part. Already on screen at the top of the page (the
         // Burj Khalifa rising from the sand): the reader's own first scroll builds it.
         var pageTop = r.top + window.scrollY, startY = Math.max(0, pageTop - vh * 0.95);
-        var span = startY > 0 ? vh * 0.6 : vh * 0.5;
+        // a drawing with many stages can ask for more room (data-span), so each one is actually seen
+        var span = (startY > 0 ? vh * 0.6 : vh * 0.5) * (parseFloat(f.dataset.span) || 1);
         var k = clamp01((window.scrollY - startY) / span);
         if (k <= f._k) return;
         f._k = k;
