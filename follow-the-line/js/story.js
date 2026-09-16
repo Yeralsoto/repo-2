@@ -280,7 +280,8 @@ export function createStory(stage, L) {
       lit.setAttribute('d', dWorld(upTo(Math.max(0.002, frac)))); opa(lit, out);
       // while the layout is drawn on the land, the newest milestone's name leaves the plan alone: it glides up
       // to the top of the frame (the strip the land keeps clear on a phone; left of the plat on a wide one)
-      const park = win4([S.layoutB[0], S.layoutB[1], S.planOut[0], S.planOut[1]], p);
+      // (it stays parked until the plan has gone, then glides back to its dot)
+      const park = win4([S.layoutB[0], S.layoutB[1], S.planOut[1], S.planOut[1] + 0.006], p);
       const parkAt = NARROW ? [16, 90] : [W * 0.06, H * 0.08];
       marks.forEach((mk, i) => {
         const q0 = P(mk.at), k = ks[i], newer = i + 1 < n ? ks[i + 1] : 0;
@@ -289,7 +290,11 @@ export function createStory(stage, L) {
         // the milestone name steps aside while the feedback rails are read across the same ground
         mk.t._q = q; mk.t.setAttribute('text-anchor', 'start');
         // (and while the builder-ready lot is named piece by piece in its close-up)
-        put(mk.t, q[0] + 10, q[1] + 4); opa(mk.t, k * (1 - newer) * (1 - win4(S.feedback, p)) * (S.ready ? 1 - win4([S.ready[0], S.ready[1], S.ready[3] + 0.006, S.ready[3] + 0.012], p) : 1) * out);
+        // parked, two names share one place, so one leaves before the next arrives instead of crossing over it
+        const m1 = i + 1 < n ? S.path[i + 1] : 1;
+        const sharp = smooth(S.path[i] + 0.004, S.path[i] + 0.008, p) * (i + 1 < n ? 1 - smooth(m1 - 0.008, m1 - 0.004, p) : 1);
+        put(mk.t, q[0] + 10, q[1] + 4);
+        opa(mk.t, lerp(k * (1 - newer), sharp, park) * (1 - win4(S.feedback, p)) * (S.ready ? 1 - win4([S.ready[0], S.ready[1], S.ready[3] + 0.006, S.ready[3] + 0.012], p) : 1) * out);
       });
     };
   });
