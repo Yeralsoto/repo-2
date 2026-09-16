@@ -21,8 +21,9 @@ const WORDS = {
   en: {
     opp: ['frontage', 'access', 'neighbors', 'terrain', 'water'],
     usable: ['setback', 'wetland', 'drainage', 'frontage', 'road'],
-    rules: ['frontage', 'road standard', 'setback', 'plat'],
-    route: ['minor subdivision', 'major subdivision', 'plat', 'approval path'],
+    // her ask (2026-09-15): the word "plat" is never shown — the dot, the step and the timing stay
+    rules: ['frontage', 'road standard', 'setback', ''],
+    route: ['minor subdivision', 'major subdivision', '', 'approval path'],
     scen: ['aggressive', 'conservative', 'balanced'],
     stress: ['longer road', 'utility extension', 'less usable land', 'softer lot value'],
     comps: ['better frontage', 'different municipality', 'water', 'different status', 'different location', 'different buyers'],
@@ -41,7 +42,8 @@ const WORDS = {
     fb: ['sales pace', 'site cost', 'lot price', 'schedule', 'demand'],
     fbRows: ['assumed', 'actual'],
     stage: ['stage 1 · at closing', 'stage 2 · month 12', 'stage 3 · month 24'],
-    path: ['opportunity', 'feasible', 'concept plan', 'underwritten', 'under contract', 'diligence cleared', 'plat approved', 'permits issued', 'final plat recorded', 'lots sold'],
+    // (and "feasible" is not shown either — her ask, 2026-09-15; its milestone and dot stay)
+    path: ['opportunity', '', 'concept plan', 'underwritten', 'under contract', 'diligence cleared', 'plat approved', 'permits issued', 'final plat recorded', 'lots sold'],
     ground: ['road base', 'utilities'],
     ready: ['cleared pad', 'water stub', 'electric stub', 'driveway culvert', 'corner pin', 'finished road'],
     builders: ['the buyer’s builder'],
@@ -49,8 +51,8 @@ const WORDS = {
   es: {
     opp: ['frente', 'acceso', 'vecinos', 'terreno', 'agua'],
     usable: ['retiro', 'humedal', 'drenaje', 'frente', 'vía'],
-    rules: ['frente', 'norma vial', 'retiro', 'plano'],
-    route: ['subdivisión menor', 'subdivisión mayor', 'plano', 'ruta de aprobación'],
+    rules: ['frente', 'norma vial', 'retiro', ''],
+    route: ['subdivisión menor', 'subdivisión mayor', '', 'ruta de aprobación'],
     scen: ['agresivo', 'conservador', 'equilibrado'],
     stress: ['vía más larga', 'extensión de servicios', 'menos área útil', 'lotes que valen menos'],
     comps: ['mejor frente', 'otro municipio', 'agua', 'otro estado', 'otra ubicación', 'otros compradores'],
@@ -69,7 +71,7 @@ const WORDS = {
     fb: ['ritmo de ventas', 'costo de obra', 'precio del lote', 'cronograma', 'demanda'],
     fbRows: ['supuesto', 'real'],
     stage: ['etapa 1 · al cierre', 'etapa 2 · mes 12', 'etapa 3 · mes 24'],
-    path: ['oportunidad', 'viable', 'plano conceptual', 'analizado', 'bajo contrato', 'diligencia cerrada', 'plano aprobado', 'permisos emitidos', 'plano final registrado', 'lotes vendidos'],
+    path: ['oportunidad', '', 'plano conceptual', 'analizado', 'bajo contrato', 'diligencia cerrada', 'plano aprobado', 'permisos emitidos', 'plano final registrado', 'lotes vendidos'],
     ground: ['base de la vía', 'servicios'],
     ready: ['plataforma despejada', 'acometida de agua', 'acometida eléctrica', 'alcantarilla de acceso', 'mojón de esquina', 'vía terminada'],
     builders: ['el constructor del comprador'],
@@ -222,6 +224,8 @@ export function createStory(stage, L) {
           n.text.setAttribute('text-anchor', 'end');
           put(n.text, a[0] - 16, a[1] - 20);
         }
+        // a word she asked to remove leaves its dot, but no leader pointing at nothing
+        show(n.lead, !!n.text.textContent);
         n.lead.setAttribute('d', seg(a, [a[0] + 13 * side, a[1] - 15]));
         opa(n.gg, k);
       });
@@ -274,9 +278,14 @@ export function createStory(stage, L) {
       }
       ghost.setAttribute('d', dWorld(route)); opa(ghost, smooth(S.path[0] - 0.006, S.path[0], p) * out * 0.7);
       lit.setAttribute('d', dWorld(upTo(Math.max(0.002, frac)))); opa(lit, out);
+      // while the layout is drawn on the land, the newest milestone's name leaves the plan alone: it glides up
+      // to the top of the frame (the strip the land keeps clear on a phone; left of the plat on a wide one)
+      const park = win4([S.layoutB[0], S.layoutB[1], S.planOut[0], S.planOut[1]], p);
+      const parkAt = NARROW ? [16, 90] : [W * 0.06, H * 0.08];
       marks.forEach((mk, i) => {
-        const q = P(mk.at), k = ks[i], newer = i + 1 < n ? ks[i + 1] : 0;
-        at(mk.c, q); mk.c.classList.toggle('done', k > 0.5); opa(mk.c, k * out);
+        const q0 = P(mk.at), k = ks[i], newer = i + 1 < n ? ks[i + 1] : 0;
+        const q = park > 0.001 ? [lerp(q0[0], parkAt[0], park), lerp(q0[1], parkAt[1], park)] : q0;
+        at(mk.c, q0); mk.c.classList.toggle('done', k > 0.5); opa(mk.c, k * out);
         // the milestone name steps aside while the feedback rails are read across the same ground
         mk.t._q = q; mk.t.setAttribute('text-anchor', 'start');
         // (and while the builder-ready lot is named piece by piece in its close-up)

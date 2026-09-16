@@ -42,7 +42,8 @@
     var box = flight.querySelector('.tl-scroll'), tl = box.querySelector('.tl'), svg = box.querySelector('.tl-route');
     var legsG = svg.querySelector('.tl-legs'), future = svg.querySelector('.tl-future'), plane = svg.querySelector('.tl-plane');
     var steps = [].slice.call(tl.querySelectorAll('.tl-step')), n = steps.length;
-    var TIMING = { draw: 320, pause: 60, flyMin: 520, flyMax: 720, settle: 100, cool: 260 };   // ms: focus + draw → pause → fly → level
+    // her note (2026-09-15): slower, so the flight can actually be watched — focus + draw → pause → fly → level
+    var TIMING = { draw: 560, pause: 160, flyMin: 980, flyMax: 1400, settle: 200, cool: 460 };
     var st = { active: 0, busy: false, rest: 0, acc: 0, lastWheel: 0, needGap: false, coolUntil: 0 };
     var legs = [], pts = [];
     var easeOut = function (x) { return 1 - Math.pow(1 - x, 3); };
@@ -157,7 +158,7 @@
       var chain = function () {
         if (wide() || !inView || st.busy || st.active >= n - 1) return;
         go(st.active + 1);
-        var wait = function () { if (st.busy) { requestAnimationFrame(wait); return; } var t0 = performance.now(); (function h(now) { if (now - t0 < 650) { requestAnimationFrame(h); return; } chain(); })(t0); };
+        var wait = function () { if (st.busy) { requestAnimationFrame(wait); return; } var t0 = performance.now(); (function h(now) { if (now - t0 < 1150) { requestAnimationFrame(h); return; } chain(); })(t0); };
         requestAnimationFrame(wait);
       };
       new IntersectionObserver(function (rows) { inView = rows[0].isIntersecting; if (inView) chain(); }, { threshold: 0.6 }).observe(box);
