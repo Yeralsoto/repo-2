@@ -162,6 +162,20 @@ export function makeCamera(L, houses) {
   const xs = keys.map((k) => k[0]);
   const ch = [1, 2, 3, 4, 5].map((c) => monotone(xs, keys.map((k) => k[c])));
   const logD = monotone(xs, keys.map((k) => Math.log(k[6])));
+  // Wide screens on The Work: the same keys without the close-up and street-level ones; those two shots are eased
+  // in on top (pose) over longer stretches — the lot from story .686 down by .743, back up by .800 (a little less
+  // close: the fit already frames it); the street from .704 down by .745, back up by .778 — seen from higher and
+  // wider (about 400 m out at 38°, her note 2026-09-16: the drop to eye level read as a cut), the life on the finished
+  // street still in the frame — with the street overview key folded into that one move. Phones keep the authored keys.
+  const WIDE_DROP = [onStory(0.732), onStory(0.746), onStory(0.756), 0.730, 0.744];
+  const keysW = WORK ? keys.filter((k) => !WIDE_DROP.some((c) => Math.abs(c - k[0]) < 1e-9)) : keys;
+  const xsW = keysW.map((k) => k[0]);
+  const chW = [1, 2, 3, 4, 5].map((c) => monotone(xsW, keysW.map((k) => k[c])));
+  const logDW = monotone(xsW, keysW.map((k) => Math.log(k[6])));
+  const SHOTS = WORK ? [
+    { at: [onStory(0.686), onStory(0.743), onStory(0.745), onStory(0.800)], t: [rx, rz], ty: 0, az: [heroAz(22), heroAz(36)], el: [50, 45], dist: [175, 150] },
+    { at: [0.704, 0.745, 0.747, 0.778], t: st, ty: 1.5, az: [-30, -34], el: [38, 38], dist: [420, 400] },
+  ] : [];
 
   // what must stay whole on a phone: the parcel with the frontage and neighbours in front of it, or, while
   // the comps are read, every comp and the subject
@@ -177,36 +191,107 @@ export function makeCamera(L, houses) {
   // Wide screens inside /work/ (her ask, 2026-09-16): the whole subdivision — parcel, every lot, the road and the
   // cul-de-sac — stays in the room the page leaves: under its bar, right of its words, above its keep-scrolling
   // tab. The room does not follow the words from beat to beat, so the land never jumps when a line changes.
-  // the ending's street at eye level (workKeys 0.744, between 0.730 and 0.758)
-  const WORK_STREET = WORK ? [0.736, 0.740, 0.750, 0.754] : null;
+  // (her note, 2026-09-16: the first fit snapped — at the close-up, the street and the closing line.) The fit is
+  // now one smooth function of the scroll: for the current window and page layout it is worked out once for the
+  // whole film, from the authored camera, and every frame reads it. Where the camera goes down to a close-up that
+  // is not of the whole (the one ready lot; the street at eye level in the ending), the fit simply carries on from
+  // the frames either side, so the descent glides. The zoom is the smallest the next 0.012 of scroll needs, then
+  // eased, so the land starts making room before it would be cut — never after.
+  // (a frame is left to the carry-through only when fitting the whole subdivision would take more than a fifth more
+  // zoom-out than the plan view needs — deep in a drop — so the fit keeps working most of the way down and up)
+  const PLAN_REF = 0.2, DEEP = 0.5;
   const WHOLE = [
     ...LAND, ...L.lots.flatMap((l) => l.poly),
     ...Array.from({ length: 32 }, (_, i) => [L.C[0] + Math.cos((i / 32) * 6.2832) * BULB_ROW, L.C[1] + Math.sin((i / 32) * 6.2832) * BULB_ROW]),
     ...Array.from({ length: 40 }, (_, i) => L.spine.at((L.S * i) / 39).p),
   ];
-  function wideFit(camera, p, aspect, H, dist, host) {
-    camera.updateMatrixWorld();
-    const W = aspect * H, m = 16;
-    const box = [Math.max(12, host.wordsRight) + m, host.top + m, W - 12 - m, Math.min(H - 12, host.moreTop) - m];
-    // while the page's centred closing line is up ("It is easier to show you."), the room ends above it
+  const STEP = 0.0005, N = Math.round(1 / STEP);
+  const probe = new THREE.PerspectiveCamera(32, 1, 1, 12000);
+  let table = null, tableKey = '';
+  const roomAt = (p, W, H, host) => {
+    const m = 16, box = [Math.max(12, host.wordsRight) + m, host.top + m, W - 12 - m, Math.min(H - 12, host.moreTop) - m];
+    // while the page's centred closing line is up ("It is easier to show you."), the room ends above it — eased in
+    // over 0.016 of scroll before the line arrives, and out the same way after it leaves
     if (host.end) {
-      const e = host.end, ke = win4([e.at - 0.008, e.at, e.out, e.out + 0.008], p);
+      const e = host.end, ke = win4([e.at - 0.02, e.at - 0.004, e.out + 0.004, e.out + 0.02], p);
       box[3] = lerp(box[3], Math.min(box[3], e.t - m), ke);
     }
-    if (box[2] - box[0] < 80 || box[3] - box[1] < 80) return;
-    // the whole subdivision stays whole until the camera settles on a close-up that is not of the whole — the one
-    // ready lot, then the street at eye level in the ending — and returns as the camera leaves it
-    const kClose = win4([HERO[1] - 0.004, HERO[1], HERO[2], HERO[2] + 0.004], p);
-    const kStreet = WORK_STREET ? win4(WORK_STREET, p) : 0;
-    const kland = (1 - kClose) * (1 - kStreet);
-    const sets = [[WHOLE, kland]]
-      .filter((e) => e[1] > 0.001)
-      .map(([pts, k]) => { const f = fitOf(camera, pts, W, H, 0, box); return f ? { f, k: k * smooth(dist * 0.05, dist * 0.15, f.depth) } : null; })
-      .filter((e) => e && e.k > 0.0005);
-    if (!sets.length) return;
-    const s = 1 + sets.reduce((acc, e) => acc + (e.f.s - 1) * e.k, 0);
-    let dx = 0, dy = 0;
-    for (const e of sets) { const d = shiftOf(e.f, s, W, H); dx += d[0] * e.k; dy += d[1] * e.k; }
+    return box;
+  };
+  const boxAvg = (a, r) => {
+    const out = new Float64Array(a.length);
+    for (let i = 0; i < a.length; i++) {
+      let sum = 0, n = 0;
+      for (let j = Math.max(0, i - r); j <= Math.min(a.length - 1, i + r); j++) { sum += a[j]; n++; }
+      out[i] = sum / n;
+    }
+    return out;
+  };
+  const fillGaps = (a, known) => {
+    let last = -1;
+    for (let i = 0; i < a.length; i++) {
+      if (!known[i]) continue;
+      if (last < 0) for (let j = 0; j < i; j++) a[j] = a[i];
+      else for (let j = last + 1; j < i; j++) a[j] = lerp(a[last], a[i], (j - last) / (i - last));
+      last = i;
+    }
+    if (last >= 0) for (let j = last + 1; j < a.length; j++) a[j] = a[last];
+  };
+  function buildTable(camera, aspect, H, host) {
+    const W = aspect * H;
+    probe.fov = camera.fov; probe.aspect = aspect; probe.zoom = 1; probe.clearViewOffset();
+    const s = new Float64Array(N + 1).fill(1), known = new Uint8Array(N + 1), fits = new Array(N + 1);
+    const fitAt = (p) => {
+      const box = roomAt(p, W, H, host);
+      if (box[2] - box[0] < 80 || box[3] - box[1] < 80) return null;
+      const { dist } = pose(probe, p, aspect);
+      probe.updateProjectionMatrix(); probe.updateMatrixWorld();
+      const f = fitOf(probe, WHOLE, W, H, 0, box);
+      return !f || f.depth < dist * 0.15 ? null : f;
+    };
+    const ref = fitAt(PLAN_REF), floor = ref ? ref.s * DEEP : 0;
+    for (let i = 0; i <= N; i++) {
+      const f = fitAt(i * STEP);
+      if (!f || f.s < floor) continue;
+      fits[i] = f; s[i] = f.s; known[i] = 1;
+    }
+    fillGaps(s, known);
+    // the smallest zoom the next and last 0.016 need, eased twice over ±0.008 (never above what any frame needs)
+    const R1 = Math.round(0.016 / STEP), R2 = Math.round(0.008 / STEP);
+    const sMin = new Float64Array(N + 1);
+    for (let i = 0; i <= N; i++) { let v = Infinity; for (let j = Math.max(0, i - R1); j <= Math.min(N, i + R1); j++) v = Math.min(v, s[j]); sMin[i] = v; }
+    const sFin = boxAvg(boxAvg(sMin, R2), R2).map((v) => Math.min(1, v * 0.98));
+    // the move that goes with it, eased the same way, then kept inside the room wherever the land is the subject
+    const dx = new Float64Array(N + 1), dy = new Float64Array(N + 1);
+    for (let i = 0; i <= N; i++) if (known[i]) { const d = shiftOf(fits[i], sFin[i], W, H); dx[i] = d[0]; dy[i] = d[1]; }
+    fillGaps(dx, known); fillGaps(dy, known);
+    const dxF = boxAvg(boxAvg(dx, R2), R2), dyF = boxAvg(boxAvg(dy, R2), R2);
+    for (let i = 0; i <= N; i++) {
+      if (!known[i]) continue;
+      const [x0, y0, x1, y1] = fits[i].box, [L0, T0, R0, B0] = fits[i].band, k = sFin[i];
+      const X0 = W / 2 + (x0 - W / 2) * k, X1 = W / 2 + (x1 - W / 2) * k, Y0 = H / 2 + (y0 - H / 2) * k, Y1 = H / 2 + (y1 - H / 2) * k;
+      dxF[i] = Math.min(Math.max(dxF[i], L0 - X0), R0 - X1);
+      dyF[i] = Math.min(Math.max(dyF[i], T0 - Y0), B0 - Y1);
+    }
+    // one light pass so a frame the room had to nudge does not leave a corner in the motion
+    const R3 = Math.round(0.003 / STEP);
+    return { s: sFin, dx: boxAvg(dxF, R3), dy: boxAvg(dyF, R3) };
+  }
+  function wideFit(camera, p, aspect, H, host) {
+    const key = `${Math.round(aspect * H)}x${Math.round(H)}|${camera.fov}|${host.top}|${Math.round(host.wordsRight)}|${Math.round(host.moreTop)}|${host.end ? Math.round(host.end.t) : ''}`;
+    if (key !== tableKey) { table = buildTable(camera, aspect, H, host); tableKey = key; }
+    const W = aspect * H, x = Math.min(N, Math.max(0, p / STEP)), i = Math.min(N - 1, Math.floor(x)), t = x - i;
+    let s = lerp(table.s[i], table.s[i + 1], t), dx = lerp(table.dx[i], table.dx[i + 1], t), dy = lerp(table.dy[i], table.dy[i + 1], t);
+    // going down to the ready lot or the street, the fit does not move at all: it keeps the frame it had as the drop
+    // began, easing only toward the one it will have as the climb ends, so the only motion on the screen is the
+    // camera's own eased glide — and the close-up sits in the same room beside the page's words
+    for (const sh of SHOTS) {
+      const [a0, , , b1] = sh.at;
+      if (p <= a0 || p >= b1) continue;
+      const ja = Math.round(a0 / STEP), jb = Math.round(b1 / STEP), u = smooth(a0, b1, p);
+      s = Math.exp(lerp(Math.log(table.s[ja]), Math.log(table.s[jb]), u));
+      dx = lerp(table.dx[ja], table.dx[jb], u); dy = lerp(table.dy[ja], table.dy[jb], u);
+    }
     camera.zoom = s;
     camera.setViewOffset(W, H, -dx, -dy, W, H);
     camera.updateProjectionMatrix();
@@ -217,7 +302,7 @@ export function makeCamera(L, houses) {
     camera.clearViewOffset();
     camera.updateProjectionMatrix();
     if (!WORK || !H) return;
-    if (aspect >= 1) { if (host) wideFit(camera, p, aspect, H, dist, host); return; }
+    if (aspect >= 1) { if (host) wideFit(camera, p, aspect, H, host); return; }
     const w = 1 - smooth(0.722, 0.73, p);
     if (w < 0.001) return;
     camera.updateMatrixWorld();
@@ -248,8 +333,34 @@ export function makeCamera(L, houses) {
   }
 
   function update(camera, p, aspect, H, host) {
-    const tx = ch[0](p), tz = ch[1](p), ty = ch[2](p), az = ch[3](p) * D2R, el = ch[4](p) * D2R;
-    let dist = Math.exp(logD(p));
+    const { tx, tz, dist } = pose(camera, p, aspect);
+    portraitFit(camera, p, aspect, H, dist, host);
+    return { x: tx, z: tz, dist, radius: Math.min(340, Math.max(55, dist * 0.62)) };
+  }
+
+  // the authored camera at p, before any fit (the wide-screen fit table is built from it)
+  function pose(camera, p, aspect) {
+    let tx, tz, ty, azd, eld, ld;
+    if (WORK && aspect >= 1) {
+      // wide screens (her note, 2026-09-16: the drops read as cuts): the camera glides down to the ready lot and to
+      // the street, eased in and out on target, angles and distance, over a real stretch of scroll
+      tx = chW[0](p); tz = chW[1](p); ty = chW[2](p); azd = chW[3](p); eld = chW[4](p); ld = logDW(p);
+      for (const sh of SHOTS) {
+        const w = smooth(sh.at[0], sh.at[1], p) * (1 - smooth(sh.at[2], sh.at[3], p));
+        if (w <= 0) continue;
+        const h = smooth(sh.at[0], sh.at[3], p);   // the slow drift around the lot spans the whole shot
+        let az = lerp(sh.az[0], sh.az[1], h);
+        while (az - azd > 180) az -= 360;
+        while (az - azd < -180) az += 360;
+        tx = lerp(tx, sh.t[0], w); tz = lerp(tz, sh.t[1], w); ty = lerp(ty, sh.ty, w);
+        azd = lerp(azd, az, w); eld = lerp(eld, lerp(sh.el[0], sh.el[1], h), w);
+        ld = lerp(ld, Math.log(lerp(sh.dist[0], sh.dist[1], h)), w);
+      }
+    } else {
+      tx = ch[0](p); tz = ch[1](p); ty = ch[2](p); azd = ch[3](p); eld = ch[4](p); ld = logD(p);
+    }
+    const az = azd * D2R, el = eld * D2R;
+    let dist = Math.exp(ld);
     // narrow screens: wide shots step back so the whole community stays in frame; close-ups stay close
     let lx = tx, lz = tz;
     if (aspect < 1.25) {
@@ -266,8 +377,7 @@ export function makeCamera(L, houses) {
     camera.lookAt(lx, ty, lz);
     camera.near = Math.max(0.5, dist * 0.02);
     camera.far = 12000;
-    portraitFit(camera, p, aspect, H, dist, host);
-    return { x: tx, z: tz, dist, radius: Math.min(340, Math.max(55, dist * 0.62)) };
+    return { tx, tz, dist };
   }
   return { update };
 }

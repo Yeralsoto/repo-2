@@ -296,6 +296,9 @@ function init(reduced) {
   window.__ftl = {
     L, scene, camera, renderer,
     get p() { return pS; },
+    // review only: the page layout the wide-screen fit reads (set to null to see the film unfitted)
+    get host() { return host; },
+    set host(h) { host = h; dirty = true; },
     // review only: paint one frame synchronously (the preview throttles animation frames)
     renderAt: (p) => { reviewP = pS = Math.min(1, Math.max(0, p)); render(pS); },
     setP: (p) => { window.scrollTo(0, section.offsetTop + p * (section.offsetHeight - window.innerHeight)); },
