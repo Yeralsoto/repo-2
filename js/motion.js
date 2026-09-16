@@ -37,6 +37,7 @@
     var box = flight.querySelector('.tl-scroll'), tl = box.querySelector('.tl'), svg = box.querySelector('.tl-route');
     var legsG = svg.querySelector('.tl-legs'), future = svg.querySelector('.tl-future'), plane = svg.querySelector('.tl-plane');
     var steps = [].slice.call(tl.querySelectorAll('.tl-step')), n = steps.length;
+    var more = flight.querySelector('.tl-more'), nexts = more ? [].slice.call(more.querySelectorAll('[data-i]')) : [];
     var legs = [], pts = [], last = -1;
     var easeOut = function (x) { return 1 - Math.pow(1 - x, 3); };
     var easeInOut = function (x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
@@ -83,7 +84,13 @@
       var level = fly <= 0 || fly >= 1 ? 1 : clamp01(Math.min(fly, 1 - fly) < 0.12 ? 1 - Math.min(fly, 1 - fly) / 0.12 : 0);
       put(p.x, p.y, nose * (1 - level));
       follow(p.x);
-      focus(fly >= 0.85 ? i + 1 : i);
+      var c = fly >= 0.85 ? i + 1 : i;
+      focus(c);
+      // the line under the timeline fills with the flight and names what is next (her ask: keep them scrolling)
+      if (more) {
+        more.style.setProperty('--p', clamp01(pos / (n - 1)).toFixed(3));
+        nexts.forEach(function (x, k) { x.classList.toggle('on', k === Math.min(nexts.length - 1, c)); });
+      }
       // past today: the route goes on a little, faintly, and dissolves
       var t = clamp01((pos - (n - 1)) / TAIL);
       future.style.strokeDashoffset = (1 - easeOut(clamp01(t / 0.5))).toFixed(3);

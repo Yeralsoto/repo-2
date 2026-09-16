@@ -913,7 +913,7 @@ def practice():
                      "Todo esto es un cuaderno. No tengo prisa por llamarlo de otra manera.")])
     )
     tcaps = ('<ol class="tcaps">' + "".join(tx("li", en, es, cls=f"c{k + 1}") for k, (en, es) in enumerate(TOWER_STAGES)) + '</ol>')
-    tower = (f'<figure class="mfig pfig tower" data-seq="300,900,1400,1200,1000,900,900" data-span="2.6">{fig_tower()}{tcaps}'
+    tower = (f'<figure class="mfig pfig tower" data-seq="300,900,1400,1200,1000,900,900" data-span="1.2">{fig_tower()}{tcaps}'
              + label(("Study · Dubai · 828 m", "Estudio · Dubái · 828 m"), ("Burj Khalifa", "Burj Khalifa"), reveal=False)
              + tx("p", "It stands on land that was desert. The land did not change; someone saw what it could hold.",
                   "Se levanta sobre una tierra que era desierto. La tierra no cambió; alguien vio lo que podía sostener.", cls="tower-line")
@@ -1945,7 +1945,7 @@ AI_EXAMPLES = [
      "behaviour": [("Milestone · where it waits", "Hito · donde espera"), ("Route · drawn before it moves", "Ruta · se dibuja antes de moverse"),
                    ("Motion · along the arc, nose first", "Movimiento · por el arco, la nariz primero"), ("Arrival · the nose levels", "Llegada · la nariz se nivela"),
                    ("Scroll · it follows the reader, never the other way", "Scroll · sigue al lector, nunca al revés")],
-     "code": ["var k = clamp01((vh * 0.9 - r.top)", "var draw = easeOut(clamp01(f / 0.35))", "legs.forEach(function (l, k) { l.style.strokeDashoffset", "put(p.x, p.y, nose", "focus(fly >= 0.85"],
+     "code": ["var k = clamp01((vh * 0.9 - r.top)", "var draw = easeOut(clamp01(f / 0.35))", "legs.forEach(function (l, k) { l.style.strokeDashoffset", "put(p.x, p.y, nose", "var c = fly >= 0.85"],
      "src": ("js/motion.js · the About timeline", "js/motion.js · la línea de tiempo de Sobre mí")},
 ]
 
@@ -2178,7 +2178,24 @@ def timeline():
     return (f'<div class="tl-flight"><div class="tl-scroll">'
             f'<svg class="tl-route" aria-hidden="true" focusable="false"><g class="tl-legs"></g>'
             f'<path class="tl-future" pathLength="1"/><g class="tl-plane">{PAPER_PLANE}</g></svg>'
-            f'<ol class="tl" aria-label="How I got here" data-es-aria="Cómo llegué hasta aquí">{steps}</ol></div></div>')
+            f'<ol class="tl" aria-label="How I got here" data-es-aria="Cómo llegué hasta aquí">{steps}</ol></div>'
+            + tl_more() + '</div>')
+
+# her ask (2026-09-16): nobody should leave because the airplane seemed in the way. Under the timeline, a quiet
+# keep-scrolling line that fills with the flight and names the next stop — then what is still ahead on the page.
+TL_NEXT = [
+    ("Next stop · Bilbao, on a scholarship", "Próxima parada · Bilbao, con una beca"),
+    ("Next stop · a summer in Utah", "Próxima parada · un verano en Utah"),
+    ("Next stop · Miami, and a company to run", "Próxima parada · Miami, y una empresa que dirigir"),
+    ("Next stop · Texas, where the land begins", "Próxima parada · Texas, donde empieza la tierra"),
+    ("Still ahead · nine chapters, and the story behind every stop", "Todavía falta · nueve capítulos, y la historia detrás de cada parada"),
+]
+
+def tl_more():
+    nexts = "".join(tx("span", en, es, extra=f' data-i="{k}"') for k, (en, es) in enumerate(TL_NEXT))
+    return (f'<div class="tl-more"><span class="tl-more-next">{nexts}</span>'
+            f'<span class="tl-more-row"><span class="tl-more-line" aria-hidden="true"><i></i></span>'
+            f'{tx("span", "Keep scrolling", "Sigue bajando", cls="caps")}</span></div>')
 
 def about():
     R = "../"

@@ -184,6 +184,9 @@ export function createStory(stage, L) {
   // another one.
   let NARROW = false, busy = [], pathDots = [];
   const pathTexts = new Set();
+  // words anchored to the land (not the diagrams' own labels): on a wide screen these too step aside rather
+  // than sit on another word
+  const LAND_NOTES = new Set(['opp', 'usable', 'rules', 'scen', 'stress', 'comps', 'ready', 'ground', 'builders']);
   const bandBox = () => (H > W ? { l: 12, r: W - 12, t: 72, b: H * 0.58 } : { l: 12, r: W - 12, t: 12, b: H - 12 });
   // the Papel chip around a word (filter #ftl-chip: 10% of the width, 34% of the height on each side)
   const chipOf = (t) => { const b = t.getBBox(); return { l: b.x - b.width * 0.1, r: b.x + b.width * 1.1, t: b.y - b.height * 0.34, b: b.y + b.height * 1.34 }; };
@@ -209,11 +212,12 @@ export function createStory(stage, L) {
       const gg = el('g', {}, g);
       return { anchor, gg, dot: circ(gg, 2.4, 'dot'), lead: plainPath(gg, 'brass thin'), text: word(gg, `${grp}.${i}`) };
     });
+    void seq;
     return (p) => {
-      const step = (w[1] - w[0] - 0.006) / Math.max(1, items.length - 1);
+      // one at a time on every width: on a wide screen inside /work/ the land sits smaller, in the room the page
+      // leaves (camera.js), and its notes would crowd just as they do on a phone
       items.forEach((n, i) => {
-        const k = NARROW || seq ? oneAt(i, items.length, w[0], endNarrow, p)
-          : smooth(w[0] + i * step, w[0] + i * step + 0.006, p) * (1 - smooth(w[2], w[3], p));
+        const k = oneAt(i, items.length, w[0], endNarrow, p);
         const a = P(n.anchor);
         at(n.dot, a);
         n.text.setAttribute('text-anchor', 'start');
@@ -294,7 +298,8 @@ export function createStory(stage, L) {
         const m1 = i + 1 < n ? S.path[i + 1] : 1;
         const sharp = smooth(S.path[i] + 0.004, S.path[i] + 0.008, p) * (i + 1 < n ? 1 - smooth(m1 - 0.008, m1 - 0.004, p) : 1);
         put(mk.t, q[0] + 10, q[1] + 4);
-        opa(mk.t, lerp(k * (1 - newer), sharp, park) * (1 - win4(S.feedback, p)) * (S.ready ? 1 - win4([S.ready[0], S.ready[1], S.ready[3] + 0.006, S.ready[3] + 0.012], p) : 1) * out);
+        // (on a wide screen always: there the land sits smaller, in the room the page leaves, and dots are close)
+        opa(mk.t, lerp(k * (1 - newer), sharp, NARROW ? park : 1) * (1 - win4(S.feedback, p)) * (S.ready ? 1 - win4([S.ready[0], S.ready[1], S.ready[3] + 0.006, S.ready[3] + 0.012], p) : 1) * out);
       });
     };
   });
@@ -534,7 +539,7 @@ export function createStory(stage, L) {
         stressW.forEach((t, i) => {
           const q = P(anchors[i]);
           put(t, q[0] + 10, q[1] - 10);
-          opa(t, (NARROW ? oneAt(i, 4, S.stress[0], S.respond[2], p) : smooth(S.stress[0] + i * 0.002, S.stress[0] + i * 0.002 + 0.003, p)) * stressOut);
+          opa(t, oneAt(i, 4, S.stress[0], S.respond[2], p) * stressOut);
         });
         // the aggressive plan does not survive; the balanced one holds
         const fail = win4(S.respond, p);
@@ -981,7 +986,9 @@ export function createStory(stage, L) {
   // takes the first place that covers no word, no other milestone and no diagram — or waits.
   function settle() {
     const fade = new Map();
-    if (NARROW) {
+    {
+      // (wide screens: no band clamp and the diagrams' labels stay as designed; only land notes and
+      // approval-path names are kept off other words)
       const B = bandBox(), vis = [], placed = [];
       texts.forEach((t, idx) => {
         if (!t.textContent || t.hasAttribute('transform')) return;
@@ -994,8 +1001,10 @@ export function createStory(stage, L) {
       });
       vis.filter((v) => !pathTexts.has(v.t)).sort((a, b) => b.o - a.o || b.idx - a.idx).forEach(({ t }) => {
         let c = chipOf(t);
-        const dx = Math.max(0, B.l - c.l) + Math.min(0, B.r - c.r), dy = Math.max(0, B.t - c.t) + Math.min(0, B.b - c.b);
-        if (dx || dy) { put(t, +t.getAttribute('x') + dx, +t.getAttribute('y') + dy); c = { l: c.l + dx, r: c.r + dx, t: c.t + dy, b: c.b + dy }; }
+        if (NARROW) {
+          const dx = Math.max(0, B.l - c.l) + Math.min(0, B.r - c.r), dy = Math.max(0, B.t - c.t) + Math.min(0, B.b - c.b);
+          if (dx || dy) { put(t, +t.getAttribute('x') + dx, +t.getAttribute('y') + dy); c = { l: c.l + dx, r: c.r + dx, t: c.t + dy, b: c.b + dy }; }
+        } else if (!LAND_NOTES.has(t.dataset.key.split('.')[0])) { placed.push(c); return; }
         if (placed.some((q) => hit(c, q))) { fade.set(t, 0); return; }
         placed.push(c);
       });

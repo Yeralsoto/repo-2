@@ -1034,21 +1034,21 @@
   .tower .clouds path{stroke:var(--on-verde);stroke-width:1;opacity:.4;}
   .tower .city path{stroke:var(--on-verde);stroke-width:1;opacity:.3;}
   .tower.armed .cl,.tower.armed .dig path[pathLength],.tower.armed .found path[pathLength],.tower.armed .edge,.tower.armed .spire{stroke-dashoffset:1;}
-  .tower.armed .dig,.tower.armed .found,.tower.armed .cranes,.tower.armed .clouds,.tower.armed .city{opacity:0;transition:opacity 700ms var(--ease-out);}
-  .tower.armed .dig path[pathLength]{transition:stroke-dashoffset 900ms var(--ease-out);}
+  .tower.armed .dig,.tower.armed .found,.tower.armed .cranes,.tower.armed .clouds,.tower.armed .city{opacity:0;transition:opacity 400ms var(--ease-out);}
+  .tower.armed .dig path[pathLength]{transition:stroke-dashoffset 500ms var(--ease-out);}
   .tower.armed.s2 .dig,.tower.armed.s2 .found{opacity:1;}
   .tower.armed.s2 .dig path[pathLength],.tower.armed.s2 .found path[pathLength]{stroke-dashoffset:0;}
-  .tower.armed .found path[pathLength]{transition:stroke-dashoffset 900ms var(--ease-out) 400ms;}
-  .tower.armed .cl{transition:stroke-dashoffset 1400ms var(--ease-out);}
+  .tower.armed .found path[pathLength]{transition:stroke-dashoffset 450ms var(--ease-out) 150ms;}
+  .tower.armed .cl{transition:stroke-dashoffset 650ms var(--ease-out);}
   .tower.armed.s3 .cl{stroke-dashoffset:0;}
   .tower.armed.s3 .cranes{opacity:1;}
-  .tower.armed .floors path,.tower.armed .mulls path{opacity:0;transition:opacity 600ms var(--ease-out) calc(var(--i) * 140ms);}
+  .tower.armed .floors path,.tower.armed .mulls path{opacity:0;transition:opacity 350ms var(--ease-out) calc(var(--i) * 30ms);}
   .tower.armed.s3 .floors.lo path{opacity:.28;}
-  .tower.armed .edge{transition:stroke-dashoffset 1500ms var(--ease-out) calc(var(--i) * 170ms);}
+  .tower.armed .edge{transition:stroke-dashoffset 750ms var(--ease-out) calc(var(--i) * 80ms);}
   .tower.armed.s3 .edge{stroke-dashoffset:0;}
   .tower.armed.s4 .floors path{opacity:.28;}
   .tower.armed.s4 .mulls .grid{opacity:.45;}
-  .tower.armed .spire{transition:stroke-dashoffset 900ms var(--ease-out);}
+  .tower.armed .spire{transition:stroke-dashoffset 500ms var(--ease-out);}
   .tower.armed.s5 .spire{stroke-dashoffset:0;}
   .tower.armed.s6 .clouds{opacity:1;}
   .tower.armed.s6 .cranes{opacity:0;}
@@ -1265,12 +1265,12 @@
   svg.waved text{transition:opacity 320ms var(--ease-out);}
   svg.waved text.wave-off{opacity:0!important;}
   /* The Practice opens with the Burj Khalifa rising out of the sand */
-  .tower .sand path{fill:none;stroke:var(--laton-on-verde);stroke-width:1.1;opacity:.75;transition:opacity 900ms var(--ease-out);}
+  .tower .sand path{fill:none;stroke:var(--laton-on-verde);stroke-width:1.1;opacity:.75;transition:opacity 500ms var(--ease-out);}
   .tower.armed.s4 .sand path{opacity:.4;}
   .tower .mulls .grid{stroke-width:.8;}
-  .tower .spire-g path:not(.spire){stroke:var(--on-verde);stroke-width:.8;opacity:0;transition:opacity 600ms var(--ease-out) 900ms;}
+  .tower .spire-g path:not(.spire){stroke:var(--on-verde);stroke-width:.8;opacity:0;transition:opacity 400ms var(--ease-out) 250ms;}
   .tower.armed.s5 .spire-g path:not(.spire){opacity:.5;}
-  .tower .edge{transition-duration:1500ms!important;}
+
   .tower-line{margin:var(--s-16) 0 0;max-width:30ch;font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:300;font-size:var(--t-20);line-height:1.4;color:var(--on-verde);}
   /* less scroll for the same story (her note): The Work and The Aerodrome */
   .js .ws-track{height:3900svh;}
@@ -1325,3 +1325,18 @@
   .tower.armed.s6 .tcaps .c5{opacity:0;transition:opacity 160ms linear;}
   .tower.armed.s7 .tcaps .c6{opacity:0;transition:opacity 160ms linear;}
   @media (prefers-reduced-motion:reduce){ .tower.armed .tcaps li{transition:none;} }
+
+  /* ---------- About · under the timeline (her ask, 2026-09-16): keep scrolling, and what is next ----------
+     In the page flow, never over anything. Latón line fills with the flight; the italic line names the next stop,
+     then what is still ahead on the page. No motion of its own beyond the cross-fade. */
+  .tl-more{display:none;}
+  .js .tl-more{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s-8);margin:var(--s-24) 0 0;}
+  .tl-more-next{display:grid;}
+  .tl-more-next span{grid-area:1/1;font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:400;font-size:var(--t-20);line-height:1.3;
+    color:var(--laton-on-verde);opacity:0;transform:translateY(4px);transition:opacity 420ms var(--ease-out),transform 420ms var(--ease-out);}
+  .tl-more-next span.on{opacity:1;transform:none;}
+  .tl-more-row{display:flex;align-items:center;gap:var(--s-12);}
+  .tl-more-row .caps{font-size:var(--t-12);letter-spacing:.24em;color:var(--on-verde);}
+  .tl-more-line{position:relative;display:block;width:72px;height:1px;background:color-mix(in srgb,var(--laton-on-verde) 35%,transparent);overflow:hidden;}
+  .tl-more-line i{position:absolute;inset:0;background:var(--laton-on-verde);transform-origin:left;transform:scaleX(var(--p,0));}
+  @media (prefers-reduced-motion:reduce){ .tl-more-next span{transition:none;} }

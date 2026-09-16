@@ -177,6 +177,8 @@ export function makeCamera(L, houses) {
   // Wide screens inside /work/ (her ask, 2026-09-16): the whole subdivision — parcel, every lot, the road and the
   // cul-de-sac — stays in the room the page leaves: under its bar, right of its words, above its keep-scrolling
   // tab. The room does not follow the words from beat to beat, so the land never jumps when a line changes.
+  // the ending's street at eye level (workKeys 0.744, between 0.730 and 0.758)
+  const WORK_STREET = WORK ? [0.736, 0.740, 0.750, 0.754] : null;
   const WHOLE = [
     ...LAND, ...L.lots.flatMap((l) => l.poly),
     ...Array.from({ length: 32 }, (_, i) => [L.C[0] + Math.cos((i / 32) * 6.2832) * BULB_ROW, L.C[1] + Math.sin((i / 32) * 6.2832) * BULB_ROW]),
@@ -192,12 +194,14 @@ export function makeCamera(L, houses) {
       box[3] = lerp(box[3], Math.min(box[3], e.t - m), ke);
     }
     if (box[2] - box[0] < 80 || box[3] - box[1] < 80) return;
-    // the whole subdivision until the camera is down on the one ready lot; that lot in its close-up
-    const kl = (1 - smooth(150, 230, dist)) * win4([HERO[0] - 0.01, HERO[0], HERO[3], HERO[3] + 0.01], p);
-    const kland = (1 - kl) * smooth(150, 260, dist);
-    const sets = [[WHOLE, kland], [LOTFIT, kl]]
+    // the whole subdivision stays whole until the camera settles on a close-up that is not of the whole — the one
+    // ready lot, then the street at eye level in the ending — and returns as the camera leaves it
+    const kClose = win4([HERO[1] - 0.004, HERO[1], HERO[2], HERO[2] + 0.004], p);
+    const kStreet = WORK_STREET ? win4(WORK_STREET, p) : 0;
+    const kland = (1 - kClose) * (1 - kStreet);
+    const sets = [[WHOLE, kland]]
       .filter((e) => e[1] > 0.001)
-      .map(([pts, k]) => { const f = fitOf(camera, pts, W, H, 0, box); return f ? { f, k: k * smooth(dist * 0.25, dist * 0.5, f.depth) } : null; })
+      .map(([pts, k]) => { const f = fitOf(camera, pts, W, H, 0, box); return f ? { f, k: k * smooth(dist * 0.05, dist * 0.15, f.depth) } : null; })
       .filter((e) => e && e.k > 0.0005);
     if (!sets.length) return;
     const s = 1 + sets.reduce((acc, e) => acc + (e.f.s - 1) * e.k, 0);
