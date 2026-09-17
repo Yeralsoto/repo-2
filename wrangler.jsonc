@@ -2,7 +2,7 @@
 // Only dist/ is published — the notes, the source and the drafts in this repo never are.
 // Rebuild dist before committing:  python3 tools/build.py && python3 tools/publish.py
 {
-  "name": "yeraldin",
+  "name": "repo-2",
   "compatibility_date": "2026-09-01",
   "assets": {
     "directory": "./dist",
