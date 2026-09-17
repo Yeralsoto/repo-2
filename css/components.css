@@ -1340,3 +1340,12 @@
   .tl-more-line{position:relative;display:block;width:72px;height:1px;background:color-mix(in srgb,var(--laton-on-verde) 35%,transparent);overflow:hidden;}
   .tl-more-line i{position:absolute;inset:0;background:var(--laton-on-verde);transform-origin:left;transform:scaleX(var(--p,0));}
   @media (prefers-reduced-motion:reduce){ .tl-more-next span{transition:none;} }
+
+  /* ---------- The Aerodrome while the 3D loads (her note, 2026-09-17) ----------
+     The notes never flash as plain text: the section waits on Verde Hondo with one quiet line, then the model
+     takes over. .wait is only set where WebGL exists, and is removed if the model cannot start. */
+  .aero-loading{display:none;}
+  .aero.wait:not(.live):not(.still){position:relative;min-height:100svh;}
+  .aero.wait:not(.live):not(.still) .aero-track{visibility:hidden;}
+  .aero.wait:not(.live):not(.still) .aero-loading{display:block;position:absolute;left:0;right:0;top:46svh;margin:0;text-align:center;
+    font-size:var(--t-12);letter-spacing:.24em;color:var(--laton-on-verde);}

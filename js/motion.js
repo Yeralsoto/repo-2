@@ -4,6 +4,7 @@
 (function () {
   var root = document.documentElement;
   root.classList.add('js');
+  window.__motion = true;   // the page's first script keeps .js only if this file actually ran
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var clamp01 = function (v) { return v < 0 ? 0 : v > 1 ? 1 : v; };
   var each = function (sel, fn, scope) { [].forEach.call((scope || document).querySelectorAll(sel), fn); };

@@ -17,7 +17,8 @@ import { U, blockMaterial, blockDepth, blockMesh } from './voxel.js';
 import { aircraftGeometry } from './aircraft.js';
 
 const root = document.querySelector('[data-aero]');
-if (root) boot();
+// if the model cannot start, the text comes back instead of a blank waiting page (the page's inline script set .wait)
+if (root) { try { boot(); } catch (e) { root.classList.remove('wait'); throw e; } }
 
 function boot() {
   const q = new URLSearchParams(location.search);
@@ -28,8 +29,8 @@ function boot() {
   const plan = root.querySelector('.aero-plan'), linesG = plan.querySelector('.aero-lines'), planeG = plan.querySelector('.aero-plane');
 
   let renderer;
-  try { renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' }); } catch (e) { return; }
-  if (!renderer.getContext()) return;
+  try { renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' }); } catch (e) { root.classList.remove('wait'); return; }
+  if (!renderer.getContext()) { root.classList.remove('wait'); return; }
   root.classList.add(reduced ? 'still' : 'live');
 
   // ---------------------------------------------------------------- the score

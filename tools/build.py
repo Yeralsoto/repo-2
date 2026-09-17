@@ -206,6 +206,7 @@ def page(slug, title, desc, body, jsonld=""):
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>document.documentElement.classList.add('js');addEventListener('load',function(){{if(!window.__motion)document.documentElement.classList.remove('js')}})</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 {tx("title", *title)}
 <meta name="description" content="{A(desc[0])}" data-es-content="{A(desc[1])}">
@@ -1727,7 +1728,13 @@ def aerodrome():
     imports.update({f"{R}aerodrome-3d/{n}": f"{R}aerodrome-3d/{n}?v={AV}" for n in AERO_MODULES})
     body = (
         '<section class="aero" data-aero aria-label="The aerodrome, built from the thesis" data-es-aria="El aeródromo, construido desde la tesis">'
-        '<div class="aero-track"><div class="aero-stage">'
+        # her note (2026-09-17): while the 3D loads, the notes must not flash on the page as plain text. Where WebGL
+        # exists the section waits quietly with one line; if the model never starts (no WebGL, the library fails to
+        # load, an error) the text comes back — the page is never left blank.
+        '<script>(function(){var r=document.currentScript.parentNode;if(!window.WebGLRenderingContext)return;r.classList.add("wait");'
+        'setTimeout(function(){if(!r.classList.contains("live")&&!r.classList.contains("still"))r.classList.remove("wait")},10000)})()</script>'
+        + tx("p", "Laying out the runway", "Trazando la pista", cls="caps aero-loading", extra=' aria-hidden="true"')
+        + '<div class="aero-track"><div class="aero-stage">'
         '<div class="aero-view" aria-hidden="true"><div class="aero-canvas"></div><div class="aero-veil"></div>'
         f'<svg class="aero-plan" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><g class="aero-lines"></g><g class="aero-plane">{PAPER_PLANE}</g></svg></div>'
         f'<div class="aero-text">{text}</div>'
@@ -1736,7 +1743,7 @@ def aerodrome():
         f'{tx("span", "Keep scrolling", "Sigue bajando", cls="caps")}</div>'
         '</div></div></section>'
         + f'<script type="importmap">{json.dumps({"imports": imports})}</script>'
-        + f'<script type="module" src="{R}aerodrome-3d/main.js?v={AV}"></script>'
+        + f'<script type="module" src="{R}aerodrome-3d/main.js?v={AV}" onerror="var a=document.querySelector(\'[data-aero]\');if(a)a.classList.remove(\'wait\')"></script>'
         + aero_sheet()
         + rest(R, ("Aircraft land into the wind.", "Los aviones aterrizan contra el viento."), "", center=True)
     )

@@ -418,3 +418,9 @@ in less scrolling. Every moment is a fraction of the track, so changing a length
   first — most of her posts are already here.
 - **Arcilla reads as a dark hole on the Verde ground.** For line work on the dark pages use ink or Latón, with a Latón
   fill for mass; keep Arcilla for one small accent.
+
+**No flash of the plain page (her note, 2026-09-17).** Every page's <head> adds `.js` before the first paint (the old
+switch lived in motion.js at the end of the body, so a refresh showed The Work's and every page's plain-text layout
+first). If motion.js never runs, the head script removes `.js` on load, so the page is still fully readable without it
+(motion.js sets `window.__motion`). The Aerodrome waits on Verde Hondo with one line ("Laying out the runway") while
+three.js loads — `.wait` only where WebGL exists, removed if the model cannot start or after 10 s.
